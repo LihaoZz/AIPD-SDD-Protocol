@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/audit-result.schema.json",
+  "title": "SDD Audit Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pass",
+    "risk_level",
+    "summary",
+    "checks",
+    "findings",
+    "required_actions",
+    "manual_review_required"
+  ],
+  "properties": {
+    "pass": {
+      "type": "boolean"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_aligned",
+        "scope_respected",
+        "tests_verified",
+        "artifact_drift"
+      ],
+      "properties": {
+        "contract_aligned": { "type": "boolean" },
+        "scope_respected": { "type": "boolean" },
+        "tests_verified": { "type": "boolean" },
+        "artifact_drift": { "type": "boolean" }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "severity", "file", "line", "description"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["logic", "security", "scope", "evidence", "style", "performance"]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "required_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "manual_review_required": {
+      "type": "boolean"
+    }
+  }
+}
