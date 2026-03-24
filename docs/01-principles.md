@@ -57,14 +57,61 @@ Avoid:
 
 ## Role Model
 
-This protocol uses four roles.
+This protocol uses five roles.
 
 | Role | Owner | Responsibility | Cannot Do |
 | :--- | :--- | :--- | :--- |
 | User | Human | Define business goal, priorities, acceptance, and tradeoffs | Invent technical design under pressure |
-| Spec Architect | Planning model | Translate business intent into specs, decisions, and task boundaries | Write production code without changing role |
-| Builder | Coding model | Implement one bounded mission block | Expand scope or rewrite architecture on its own |
-| Reviewer | Review model or review pass | Check evidence, risks, and contract alignment | Trust the builder's claims without verification |
+| Spec Architect | Planning model | Translate business intent into specs, decisions, function blocks, and mission boundaries | Write production code without changing role |
+| Builder | Coding model | Implement one bounded mission block under the active function block | Expand scope or rewrite architecture on its own |
+| Reviewer | Review model or review pass | Check evidence, risks, quality gates, and contract alignment | Trust the builder's claims without verification |
+| Recovery Coordinator | Recovery model or recovery pass | Classify broken state, repair session truth, and choose the smallest safe recovery move | Continue implementation by instinct or hide state drift |
+
+Scene paths define work sequence. Roles define responsibility boundaries.
+
+No scene may collapse role separation.
+
+When a problem is discovered, route it by ownership:
+
+- `spec_gap` -> `Spec Architect`
+- `implementation_bug` -> `Builder`
+- `quality_evidence_gap` -> `Builder`
+- `state_drift` -> `Recovery Coordinator`
+- `environment_issue` -> `Recovery Coordinator`
+- `review_context_gap` -> current scene lead role
+
+---
+
+## Ontology Skeleton vs Engineering Map
+
+Do not mix these two ideas.
+
+The `8-element ontology frame` describes what one function is:
+
+- `Actor`
+- `Goal`
+- `Entity`
+- `Relation`
+- `State`
+- `Event`
+- `Rule`
+- `Evidence`
+
+The `8-layer impact map` describes where that function lands in engineering:
+
+- business
+- domain
+- flow
+- experience
+- application
+- service
+- data
+- quality
+
+Think of it like this:
+
+- ontology frame = meaning
+- impact map = implementation surface
 
 ---
 
@@ -144,14 +191,59 @@ The user must still decide:
 
 ### 角色模型
 
-这套协议使用四个角色。
+这套协议使用五个角色。
 
 | 角色 | 所有者 | 责任 | 不能做什么 |
 | :--- | :--- | :--- | :--- |
 | User | 人类 | 定义业务目标、优先级、验收标准和取舍 | 在压力下被迫发明技术设计 |
-| Spec Architect | 规划模型 | 把业务意图翻译成规格、决策和任务边界 | 不切换角色却直接写生产代码 |
-| Builder | 编码模型 | 实现一个有边界的 mission block | 自行扩范围或重写架构 |
-| Reviewer | 审查模型或审查过程 | 检查证据、风险和契约一致性 | 不经验证就相信 Builder 的说法 |
+| Spec Architect | 规划模型 | 把业务意图翻译成规格、决策、function block 和 mission 边界 | 不切换角色却直接写生产代码 |
+| Builder | 编码模型 | 在当前 function block 下实现一个有边界的 mission block | 自行扩范围或重写架构 |
+| Reviewer | 审查模型或审查过程 | 检查证据、风险、质量门禁和契约一致性 | 不经验证就相信 Builder 的说法 |
+| Recovery Coordinator | 恢复模型或恢复过程 | 分类故障状态、修复会话真理源、选择最小安全恢复动作 | 凭直觉继续实现或掩盖状态漂移 |
+
+场景路径定义工作顺序，角色定义责任边界。
+
+任何场景都不得破坏角色分离。
+
+发现问题后，必须按责任归因路由：
+
+- `spec_gap` -> `Spec Architect`
+- `implementation_bug` -> `Builder`
+- `quality_evidence_gap` -> `Builder`
+- `state_drift` -> `Recovery Coordinator`
+- `environment_issue` -> `Recovery Coordinator`
+- `review_context_gap` -> 当前场景主导角色
+
+### 本体骨架 vs 工程地图
+
+不要把这两个概念混在一起。
+
+`8 元素本体框架` 用来描述一个功能“是什么”：
+
+- `Actor`
+- `Goal`
+- `Entity`
+- `Relation`
+- `State`
+- `Event`
+- `Rule`
+- `Evidence`
+
+`8 层影响地图` 用来描述这个功能“落到哪些工程层”：
+
+- business
+- domain
+- flow
+- experience
+- application
+- service
+- data
+- quality
+
+可以这样记：
+
+- 本体框架 = 意义骨架
+- 影响地图 = 实现落面
 
 ### 非技术用户规则
 

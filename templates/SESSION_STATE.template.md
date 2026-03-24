@@ -5,6 +5,7 @@
 - `project`:
 - `mode`:
 - `stage`:
+- `active_function_block`:
 - `active_mission_block`:
 
 ## Latest Status
@@ -39,6 +40,7 @@
 - `project`：项目名称
 - `mode`：当前模式
 - `stage`：当前阶段
+- `active_function_block`：当前激活的 function block
 - `active_mission_block`：当前激活任务块
 
 #### 最新状态

@@ -19,6 +19,8 @@ What problem this project solves and for whom.
 - required tests
 - security expectations
 - performance expectations if relevant
+- link to `QUALITY_RULEBOOK.md`
+- when to update `QUALITY_MEMORY.md`
 
 ## Approval Rules
 
@@ -50,6 +52,8 @@ What problem this project solves and for whom.
 - 必需测试
 - 安全要求
 - 如果相关，还包括性能要求
+- `QUALITY_RULEBOOK.md` 的引用
+- 何时更新 `QUALITY_MEMORY.md`
 
 #### 审批规则
 

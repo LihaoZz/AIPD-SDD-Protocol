@@ -15,9 +15,9 @@ It is written for a non-technical user. The user does not need to know implement
 | `Kickoff` | Describe the product idea, pain point, or desired feature in plain language | Identify session mode and gather missing business context | Initial understanding |
 | `Discovery` | Answer focused product questions | Reduce ambiguity and surface risks, assumptions, and missing facts | Discovery notes |
 | `Specification` | Confirm whether the proposed direction matches the business goal | Write source-of-truth artifacts and define scope boundaries | Constitution, scope, decisions, data and API contracts if needed |
-| `Planning` | Approve or adjust priorities | Split work into bounded mission blocks | Task queue |
-| `Implementation` | Observe progress and answer business tradeoff questions if needed | Implement one mission block at a time | Code plus evidence |
-| `Review` | Decide whether findings are acceptable or need correction | Audit scope, correctness, and contract alignment | Structured review result |
+| `Planning` | Approve or adjust priorities | Split work into function blocks and mission blocks | Task queue |
+| `Implementation` | Observe progress and answer business tradeoff questions if needed | Implement one mission block at a time under the active function block | Code plus evidence |
+| `Review` | Decide whether findings are acceptable or need correction | Audit scope, correctness, and quality gates | Structured quality report |
 | `Recovery` | Clarify priorities if work is blocked or broken | Restart from a controlled state instead of improvising | Recovery plan |
 | `Closure` | Confirm whether to continue, pause, or release | Update repository state for the next session | Current project state |
 
@@ -49,12 +49,13 @@ unless those choices directly change cost, speed, risk, or product behavior in a
 ## What Happens In A Good Session
 
 1. The session starts by identifying the mode.
-2. The protocol asks enough questions to remove dangerous ambiguity.
-3. The protocol writes the answer into stable files.
-4. The implementation task is cut into small bounded units.
-5. The coding agent only executes one bounded unit at a time.
-6. Review is based on evidence, not on confidence.
-7. Before ending, the current project state is written for the next session.
+2. The session runs project preflight before entering the requested scene.
+3. The protocol asks enough questions to remove dangerous ambiguity.
+4. The protocol writes the answer into stable files.
+5. The implementation task is cut into small bounded units.
+6. The coding agent only executes one bounded unit at a time.
+7. Review is based on evidence, not on confidence.
+8. Before ending, the current project state is written for the next session.
 
 ---
 
@@ -100,9 +101,9 @@ If the system has APIs or data persistence, also prepare:
 | `Kickoff` | 用大白话描述产品想法、痛点或期望功能 | 识别会话模式，补齐缺失的业务上下文 | 初始理解 |
 | `Discovery` | 回答聚焦的产品问题 | 减少模糊性，暴露风险、假设和缺失事实 | 调研记录 |
 | `Specification` | 确认建议方向是否符合业务目标 | 写真理源文件并定义范围边界 | Constitution、Scope、Decisions，以及需要时的数据和 API 契约 |
-| `Planning` | 批准或调整优先级 | 把工作拆成有边界的 mission blocks | 任务队列 |
-| `Implementation` | 观察进展，并在需要时回答业务取舍问题 | 一次实现一个 mission block | 代码和证据 |
-| `Review` | 判断审查发现是否可接受或需要修正 | 审核范围、正确性和契约一致性 | 结构化审查结果 |
+| `Planning` | 批准或调整优先级 | 把工作拆成 function blocks 和 mission blocks | 任务队列 |
+| `Implementation` | 观察进展，并在需要时回答业务取舍问题 | 在当前 function block 下，一次实现一个 mission block | 代码和证据 |
+| `Review` | 判断审查发现是否可接受或需要修正 | 审核范围、正确性和质量门禁 | 结构化质量报告 |
 | `Recovery` | 在工作卡住或出错时澄清优先级 | 从受控状态重新开始，而不是即兴乱补 | 恢复计划 |
 | `Closure` | 确认是继续、暂停还是发布 | 更新仓库状态，供下次会话接手 | 当前项目状态 |
 
@@ -130,12 +131,13 @@ If the system has APIs or data persistence, also prepare:
 ### 一次好的会话会发生什么
 
 1. 会话开始时先识别当前模式。
-2. 协议会提足够多的问题，以消除危险的模糊性。
-3. 协议把答案写入稳定文件。
-4. 实现任务会被切成有边界的小单元。
-5. 编码代理一次只执行一个小单元。
-6. 审查以证据为依据，而不是以自信为依据。
-7. 会话结束前，当前项目状态会被写下来供下次接手。
+2. 在进入请求场景前，先执行项目 preflight。
+3. 协议会提足够多的问题，以消除危险的模糊性。
+4. 协议把答案写入稳定文件。
+5. 实现任务会被切成有边界的小单元。
+6. 编码代理一次只执行一个小单元。
+7. 审查以证据为依据，而不是以自信为依据。
+8. 会话结束前，当前项目状态会被写下来供下次接手。
 
 ### 这份路线图要防止的失败模式
 

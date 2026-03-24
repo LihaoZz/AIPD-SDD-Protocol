@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/quality-report.schema.json",
+  "title": "SDD Quality Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "fb_id",
+    "mb_id",
+    "quality_profile",
+    "result",
+    "risk_level",
+    "baseline_summary",
+    "changed_files",
+    "scope_respected",
+    "checks",
+    "regression_found",
+    "open_risks",
+    "lessons",
+    "required_actions",
+    "manual_review_required"
+  ],
+  "properties": {
+    "fb_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mb_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quality_profile": {
+      "type": "string",
+      "enum": ["standard", "strict"]
+    },
+    "result": {
+      "type": "string",
+      "enum": ["pass", "fail", "rework_required"]
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "baseline_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "scope_respected": {
+      "type": "boolean"
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["required", "status", "evidence", "note"],
+        "properties": {
+          "required": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pass", "fail", "waived", "not_applicable"]
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "regression_found": {
+      "type": "boolean"
+    },
+    "open_risks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "lessons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "manual_review_required": {
+      "type": "boolean"
+    },
+    "template_rules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

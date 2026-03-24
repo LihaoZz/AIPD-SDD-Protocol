@@ -1,0 +1,73 @@
+{
+  "fb_id": "fb2",
+  "mb_id": "fb2-mb3",
+  "quality_profile": "standard",
+  "result": "pass",
+  "risk_level": "medium",
+  "baseline_summary": "Replace this with the real baseline summary. / 用真实基线摘要替换这里。",
+  "changed_files": [],
+  "scope_respected": true,
+  "checks": {
+    "scope_boundary": {
+      "required": true,
+      "status": "pass",
+      "evidence": "",
+      "note": ""
+    },
+    "fb_ontology_alignment": {
+      "required": true,
+      "status": "pass",
+      "evidence": "",
+      "note": ""
+    },
+    "layer_coverage_alignment": {
+      "required": true,
+      "status": "pass",
+      "evidence": "",
+      "note": ""
+    },
+    "build": {
+      "required": true,
+      "status": "pass",
+      "evidence": "",
+      "note": ""
+    },
+    "lint": {
+      "required": true,
+      "status": "pass",
+      "evidence": "",
+      "note": ""
+    },
+    "typecheck": {
+      "required": true,
+      "status": "pass",
+      "evidence": "",
+      "note": ""
+    },
+    "related_tests": {
+      "required": true,
+      "status": "pass",
+      "evidence": "",
+      "note": ""
+    },
+    "artifact_sync": {
+      "required": true,
+      "status": "pass",
+      "evidence": "",
+      "note": ""
+    }
+  },
+  "regression_found": false,
+  "open_risks": [],
+  "lessons": [],
+  "required_actions": [],
+  "manual_review_required": false,
+  "template_rules": [
+    "Report only the checks that were actually required by this MB. / 只报告该 MB 实际要求的检查项。",
+    "Do not use this report for vague summaries without check-level evidence. / 不要把这份报告写成没有检查级证据的空泛总结。",
+    "Every required check must have a final status. / 每个必需检查都必须有最终状态。",
+    "When relevant, show how the MB stayed aligned with the parent FB ontology frame and impact map. / 在相关情况下，说明该 MB 如何保持与父 FB 的本体框架和影响地图一致。",
+    "When relevant, explain whether the MB stayed within its declared inheritance slice. / 在相关情况下，说明该 MB 是否保持在自己声明的继承切片内。",
+    "Allowed statuses are: pass, fail, waived, not_applicable. / 允许的状态只有：pass、fail、waived、not_applicable。"
+  ]
+}

@@ -61,7 +61,10 @@ This separation makes it easier to reuse the protocol across different products.
 ├── CONSTITUTION.md
 ├── SCOPE.md
 ├── DECISIONS.md
+├── QUALITY_RULEBOOK.md
+├── QUALITY_MEMORY.md
 ├── SESSION_STATE.md
+├── function_blocks/
 ├── missions/
 └── reviews/
 ```

@@ -98,6 +98,26 @@ Examples:
 
 After reading this `README.md`, the agent should route itself like this.
 
+Before entering any scene workflow, the agent must:
+
+1. run `Project Preflight`
+2. return a short `Preflight Summary`
+3. classify the project state as `ready`, `bootstrap_required`, or `blocked`
+4. map the scene-specific path
+5. activate the first role
+6. continue automatically only when safe
+
+Use this mental model:
+
+- `Preflight`: can this scene safely start
+- `Scene Path`: what work sequence applies
+- `Role Handoff`: who owns the next normal step
+- `Issue Routing`: who must resolve a discovered problem
+
+If foundational files can be created safely, the agent should initialize them instead of asking the user to manage protocol internals.
+
+Use `templates/PREFLIGHT_RESULT.template.md` as the structure for the preflight summary.
+
 ### `greenfield`
 
 First active role:
@@ -114,6 +134,11 @@ Read next:
 - `templates/CONSTITUTION.template.md`
 - `templates/SCOPE.template.md`
 - `templates/DECISIONS.template.md`
+- `templates/FUNCTION_BLOCK.template.md`
+- `templates/MISSION_BLOCK.template.md`
+- `templates/QUALITY_RULEBOOK.template.md`
+- `templates/QUALITY_MEMORY.template.md`
+- `templates/QUALITY_REPORT.template.json`
 - `templates/SESSION_STATE.template.md`
 
 Add these when relevant:
@@ -126,8 +151,11 @@ Then:
 - enter `INIT`
 - enter `DISCOVERY`
 - ask only business questions first
+- cover the FB's 8 ontology elements and affected layers before detailed planning
 - generate project files in `PROJECT_ROOT`
+- plan MBs as explicit inheritance slices under the parent FB
 - do not enter `BUILD`
+- hand off to `Builder` only after the user agrees to implementation
 
 ### `expansion`
 
@@ -144,6 +172,8 @@ Read next:
 - `<PROJECT_ROOT>/CONSTITUTION.md`
 - `<PROJECT_ROOT>/SCOPE.md`
 - `<PROJECT_ROOT>/DECISIONS.md`
+- `<PROJECT_ROOT>/QUALITY_RULEBOOK.md`
+- `<PROJECT_ROOT>/QUALITY_MEMORY.md`
 - `<PROJECT_ROOT>/SESSION_STATE.md`
 
 Add these when relevant:
@@ -154,7 +184,11 @@ Add these when relevant:
 Then:
 
 - identify what assumption the new feature may break
+- collect enough detail to write a bounded new FB
+- cover the feature's ontology frame and impact map before detailed FB writing
+- plan MBs as explicit inheritance slices under the parent FB
 - update specs before implementation
+- hand off to `Builder` only after the user agrees to implementation
 
 ### `continue`
 
@@ -169,6 +203,7 @@ Read next:
 - `docs/05-review-recovery.md` when needed
 - `docs/06-operating-playbook.md`
 - `<PROJECT_ROOT>/SESSION_STATE.md`
+- current function block named by `active_function_block`
 - current mission block named by `active_mission_block`
 - every file listed under required reads
 
@@ -187,17 +222,19 @@ First active role:
 Read next:
 
 - `docs/05-review-recovery.md`
-- `schemas/audit-result.schema.json`
+- `schemas/quality-report.schema.json`
 - `<PROJECT_ROOT>/CONSTITUTION.md`
 - `<PROJECT_ROOT>/SCOPE.md`
+- relevant function block
 - relevant mission block
 - relevant contract files
 
 Then:
 
 - review against written artifacts
-- return a structured result
+- return a structured quality report
 - do not silently fix code during the review pass
+- classify each finding by ownership
 
 ### `recovery`
 
@@ -209,8 +246,10 @@ Read next:
 
 - `docs/05-review-recovery.md`
 - `<PROJECT_ROOT>/SESSION_STATE.md`
+- current function block if one exists
 - current mission block if one exists
 - `<PROJECT_ROOT>/VERSION_LOG.md` if it exists
+- `<PROJECT_ROOT>/QUALITY_MEMORY.md` if it exists
 - relevant broken-area artifacts
 
 Then:
@@ -218,6 +257,7 @@ Then:
 - classify the failure
 - choose the smallest safe move
 - update session state before new implementation begins
+- route the failure to the owning role
 
 ---
 
@@ -230,10 +270,13 @@ The agent should create and maintain these files in `PROJECT_ROOT`:
 - `<PROJECT_ROOT>/CONSTITUTION.md`
 - `<PROJECT_ROOT>/SCOPE.md`
 - `<PROJECT_ROOT>/DECISIONS.md`
+- `<PROJECT_ROOT>/QUALITY_RULEBOOK.md`
+- `<PROJECT_ROOT>/QUALITY_MEMORY.md`
 - `<PROJECT_ROOT>/SESSION_STATE.md`
 - `<PROJECT_ROOT>/DATA_MODEL.md` when needed
 - `<PROJECT_ROOT>/API_CONTRACT.md` when needed
 - `<PROJECT_ROOT>/VERSION_LOG.md` when needed
+- `<PROJECT_ROOT>/function_blocks/`
 - `<PROJECT_ROOT>/missions/`
 - `<PROJECT_ROOT>/reviews/`
 
@@ -246,11 +289,13 @@ These are generated into the real project during execution.
 After bootstrapping, the first substantive reply should contain:
 
 1. selected scene
-2. active role
-3. `PROJECT_ROOT`
-4. files read
-5. missing files, if any
-6. next questions or next action
+2. preflight result
+3. whether the requested scene can start now
+4. active role
+5. `PROJECT_ROOT`
+6. files read
+7. missing files, if any
+8. next questions or next action
 
 The first reply should be short and operational.
 
@@ -264,9 +309,11 @@ Protocol repository validation:
 
 External project validation:
 
+- `python3 scripts/sdd_guard.py check-preflight /path/to/project <scene>`
 - `python3 scripts/sdd_guard.py check-project /path/to/project`
+- `python3 scripts/sdd_guard.py check-function /path/to/workspace/function_blocks/<function-file>.md`
 - `python3 scripts/sdd_guard.py check-mission /path/to/workspace/missions/<mission-file>.md`
-- `python3 scripts/sdd_guard.py check-review /path/to/workspace/reviews/<review-file>.json`
+- `python3 scripts/sdd_guard.py check-quality-report /path/to/workspace/reviews/<quality-report>.json`
 - `python3 scripts/sdd_guard.py check-all /path/to/project`
 
 ---
@@ -378,6 +425,26 @@ Use these only after reading this file:
 
 代理读完本 `README.md` 后，应按下面规则自动路由。
 
+在进入任何场景流程之前，代理都必须：
+
+1. 先执行 `Project Preflight`
+2. 先返回一份简短的 `Preflight Summary`
+3. 把项目状态分类为 `ready`、`bootstrap_required` 或 `blocked`
+4. 映射该场景的专属路径
+5. 激活第一个角色
+6. 只有在安全时才自动继续
+
+可以用下面这套心智模型理解：
+
+- `Preflight`：这个场景现在能不能安全开始
+- `Scene Path`：这个场景该走哪条工作路径
+- `Role Handoff`：正常推进时下一步由谁负责
+- `Issue Routing`：发现问题后由谁解决
+
+如果缺失的是可以安全创建的基础制度文件，代理应自动初始化，而不是要求用户理解协议内部结构。
+
+生成 preflight summary 时，应使用 `templates/PREFLIGHT_RESULT.template.md` 作为结构。
+
 #### `greenfield`
 
 第一个激活角色：
@@ -394,6 +461,11 @@ Use these only after reading this file:
 - `templates/CONSTITUTION.template.md`
 - `templates/SCOPE.template.md`
 - `templates/DECISIONS.template.md`
+- `templates/FUNCTION_BLOCK.template.md`
+- `templates/MISSION_BLOCK.template.md`
+- `templates/QUALITY_RULEBOOK.template.md`
+- `templates/QUALITY_MEMORY.template.md`
+- `templates/QUALITY_REPORT.template.json`
 - `templates/SESSION_STATE.template.md`
 
 如果相关，再补读：
@@ -406,8 +478,11 @@ Use these only after reading this file:
 - 进入 `INIT`
 - 进入 `DISCOVERY`
 - 先只问业务问题
+- 在进入详细规划前，先覆盖该 FB 的 8 个本体元素和受影响工程层
 - 在 `PROJECT_ROOT` 中生成项目文件
+- 把 MB 规划成父 FB 下的明确继承切片
 - 不要进入 `BUILD`
+- 只有在用户同意实现后，才交给 `Builder`
 
 #### `expansion`
 
@@ -424,6 +499,8 @@ Use these only after reading this file:
 - `<PROJECT_ROOT>/CONSTITUTION.md`
 - `<PROJECT_ROOT>/SCOPE.md`
 - `<PROJECT_ROOT>/DECISIONS.md`
+- `<PROJECT_ROOT>/QUALITY_RULEBOOK.md`
+- `<PROJECT_ROOT>/QUALITY_MEMORY.md`
 - `<PROJECT_ROOT>/SESSION_STATE.md`
 
 如果相关，再补读：
@@ -434,7 +511,11 @@ Use these only after reading this file:
 然后：
 
 - 找出新功能可能打破哪个已有假设
+- 收集足够细节来写出有边界的新 FB
+- 在写详细 FB 之前，先覆盖该功能的本体框架和影响地图
+- 把 MB 规划成父 FB 下的明确继承切片
 - 先更新规格，再进入实现
+- 只有在用户同意实现后，才交给 `Builder`
 
 #### `continue`
 
@@ -449,7 +530,8 @@ Use these only after reading this file:
 - 必要时读取 `docs/05-review-recovery.md`
 - `docs/06-operating-playbook.md`
 - `<PROJECT_ROOT>/SESSION_STATE.md`
-- `active_mission_block` 指向的当前任务块
+- `active_function_block` 指向的当前 function block
+- `active_mission_block` 指向的当前 mission block
 - required reads 中列出的每个文件
 
 然后：
@@ -467,17 +549,19 @@ Use these only after reading this file:
 接着读取：
 
 - `docs/05-review-recovery.md`
-- `schemas/audit-result.schema.json`
+- `schemas/quality-report.schema.json`
 - `<PROJECT_ROOT>/CONSTITUTION.md`
 - `<PROJECT_ROOT>/SCOPE.md`
+- 相关 function block
 - 相关 mission block
 - 相关契约文件
 
 然后：
 
 - 对照书面工件进行审查
-- 返回结构化结果
+- 返回结构化质量报告
 - 在 review 阶段不要静默修代码
+- 对每个发现按责任归因分类
 
 #### `recovery`
 
@@ -489,8 +573,10 @@ Use these only after reading this file:
 
 - `docs/05-review-recovery.md`
 - `<PROJECT_ROOT>/SESSION_STATE.md`
+- 如果存在，读取当前 function block
 - 如果存在，读取当前 mission block
 - 如果存在，读取 `<PROJECT_ROOT>/VERSION_LOG.md`
+- 如果存在，读取 `<PROJECT_ROOT>/QUALITY_MEMORY.md`
 - 与问题区域相关的工件
 
 然后：
@@ -498,6 +584,7 @@ Use these only after reading this file:
 - 对失败进行分类
 - 选择最小安全动作
 - 在恢复实现前先更新 session state
+- 把失败路由给正确责任角色
 
 ### 真实项目中生成的文件
 
@@ -508,10 +595,13 @@ Use these only after reading this file:
 - `<PROJECT_ROOT>/CONSTITUTION.md`
 - `<PROJECT_ROOT>/SCOPE.md`
 - `<PROJECT_ROOT>/DECISIONS.md`
+- `<PROJECT_ROOT>/QUALITY_RULEBOOK.md`
+- `<PROJECT_ROOT>/QUALITY_MEMORY.md`
 - `<PROJECT_ROOT>/SESSION_STATE.md`
 - 如果需要，再生成 `<PROJECT_ROOT>/DATA_MODEL.md`
 - 如果需要，再生成 `<PROJECT_ROOT>/API_CONTRACT.md`
 - 如果需要，再生成 `<PROJECT_ROOT>/VERSION_LOG.md`
+- `<PROJECT_ROOT>/function_blocks/`
 - `<PROJECT_ROOT>/missions/`
 - `<PROJECT_ROOT>/reviews/`
 
@@ -522,11 +612,13 @@ Use these only after reading this file:
 完成启动后，第一条正式回复应该包含：
 
 1. 当前选中的场景
-2. 当前激活角色
-3. `PROJECT_ROOT`
-4. 已读取文件
-5. 缺失文件（如果有）
-6. 下一轮问题或下一步动作
+2. preflight 结果
+3. 当前请求场景是否现在可以开始
+4. 当前激活角色
+5. `PROJECT_ROOT`
+6. 已读取文件
+7. 缺失文件（如果有）
+8. 下一轮问题或下一步动作
 
 第一条回复应简短且可执行。
 
@@ -538,9 +630,11 @@ Use these only after reading this file:
 
 外部项目校验：
 
+- `python3 scripts/sdd_guard.py check-preflight /path/to/project <scene>`
 - `python3 scripts/sdd_guard.py check-project /path/to/project`
+- `python3 scripts/sdd_guard.py check-function /path/to/workspace/function_blocks/<function-file>.md`
 - `python3 scripts/sdd_guard.py check-mission /path/to/workspace/missions/<mission-file>.md`
-- `python3 scripts/sdd_guard.py check-review /path/to/workspace/reviews/<review-file>.json`
+- `python3 scripts/sdd_guard.py check-quality-report /path/to/workspace/reviews/<quality-report>.json`
 - `python3 scripts/sdd_guard.py check-all /path/to/project`
 
 ### 详细参考
