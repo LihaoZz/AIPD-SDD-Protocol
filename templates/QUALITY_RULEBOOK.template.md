@@ -10,6 +10,7 @@ Define the only approved quality standards for all mission blocks.
 - Every `MB` must select checks from this rulebook.
 - If a needed check does not exist here, the `MB` must stop and request a rulebook update instead of improvising.
 - Waiving a check is allowed only under the waiver rule below.
+- When a parent `FB` uses `external_ui_package` or `hybrid` and the `MB` touches the `experience` or `application` layer, include `experience_input_alignment`.
 
 ## Profiles
 
@@ -55,6 +56,14 @@ Define the only approved quality standards for all mission blocks.
 
 - `evidence`:
   pass when the QR includes changed files, executed checks, results, open risks, and next action.
+
+- `experience_input_alignment`:
+  pass when the MB consumes the approved external UI package or design authority declared in the parent FB,
+  and does not introduce an unapproved visual redesign.
+  This check validates external experience input consumption only.
+  It does not replace `scope_boundary`, `fb_ontology_alignment`, `layer_coverage_alignment`, or any other required check.
+  Use this when the parent FB's `experience_delivery_mode` is `external_ui_package` or `hybrid`
+  and the MB touches the `experience` or `application` layer.
 
 - `contract`:
   pass when API or data interaction changes are verified against the contract.
@@ -153,6 +162,14 @@ Use `strict` by default when the MB touches:
 
 - `evidence`：
   当质量报告包含改动文件、执行过的检查、检查结果、开放风险和下一步动作时通过。
+
+- `experience_input_alignment`：
+  当本次 MB 正确消费父 FB 中声明的外部 UI 包或设计权威来源，
+  且没有引入未经批准的视觉重设计时通过。
+  这项检查只验证外部体验输入是否被正确消费，
+  不能替代 `scope_boundary`、`fb_ontology_alignment`、`layer_coverage_alignment` 或其他必需检查。
+  当父 FB 的 `experience_delivery_mode` 为 `external_ui_package` 或 `hybrid`，
+  且本次 MB 触及 `experience` 或 `application` 层时，应选择此检查项。
 
 - `contract`：
   当 API 或数据交互变更已根据契约完成验证时通过。

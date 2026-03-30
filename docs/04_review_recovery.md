@@ -11,6 +11,7 @@ The reviewer should verify:
 - FB impact map coverage alignment
 - active MB inheritance-slice compliance
 - mission block scope compliance
+- external UI package alignment when the parent FB does not use Builder-owned experience delivery
 - required quality checks
 - data or API contract drift
 - hidden risk introduced by the task
@@ -76,6 +77,12 @@ Store review files under `<PROJECT_ROOT>/reviews/` and validate them against `sc
       "status": "pass",
       "evidence": "affected layers in the FB were covered or explicitly deferred",
       "note": ""
+    },
+    "experience_input_alignment": {
+      "required": false,
+      "status": "not_applicable",
+      "evidence": "The MB did not depend on an external UI package, or the approved package was consumed without visual drift",
+      "note": ""
     }
   },
   "regression_found": false,
@@ -110,6 +117,8 @@ Run recovery in this order:
 5. choose the smallest safe move
 6. update `SESSION_STATE.md` before any new implementation begins
 
+If the failure is caused by a missing external UI package, do not let the Builder compensate by inventing a replacement design. Record the missing input, route the handoff correctly, and keep the next action explicit.
+
 ---
 
 ## Three-Strike Rule
@@ -138,6 +147,7 @@ Reviewer 应该核查：
 - 是否覆盖了父 FB 声明受影响的工程层
 - 是否遵守当前 MB 声明的继承切片
 - 是否遵守 mission block 的范围
+- 当父 FB 的体验层不是由 Builder 直接交付时，是否正确对齐外部 UI 包
 - 是否完成必需的质量检查
 - 是否出现数据或 API 契约漂移
 - 任务是否引入了隐藏风险
@@ -180,6 +190,7 @@ Reviewer 不得用模糊的“退回上一步”来描述问题。
 - `risk_level`：整体风险等级
 - `baseline_summary`：简短、机器可读的基线摘要
 - `checks`：本次 MB 实际要求的检查项及结果
+- `experience_input_alignment`：当相关时，检查批准的外部 UI 输入是否被正确消费
 - `required_actions`：如果失败，必须执行的动作
 - `manual_review_required`：是否还需要人工进一步审查
 
@@ -203,6 +214,8 @@ Reviewer 不得用模糊的“退回上一步”来描述问题。
 4. 把失败路由给对应责任角色
 5. 选择最小的安全动作
 6. 在开始新的实现前先更新 `SESSION_STATE.md`
+
+如果失败是由缺失的外部 UI 包导致的，不要让 Builder 靠临场设计去补位。应把缺失输入记录清楚、把 handoff 路由给正确责任方，并把下一步动作写明确。
 
 ### 三振规则
 

@@ -1,5 +1,10 @@
 # SDD Master Protocol v4
 
+> Historical reference only.
+>
+> This file is preserved for traceability and comparison.
+> The current authority lives in `README.md` and `docs/00_lifecycle.md`.
+
 ## Positioning
 
 This is an AI software delivery protocol designed for non-technical users.
@@ -29,6 +34,7 @@ One function should be understood in two complementary ways:
 5. Completion must be based on evidence, not self-reporting.
 6. Less is more. Always keep it simple.
 7. After failure, return to the correct stage instead of repeating blind attempts.
+8. When the experience layer is externally delivered, treat the external UI package as an input authority instead of asking the Builder to invent the visual design.
 
 ---
 
@@ -91,6 +97,7 @@ Compared with the single-file version, v4 makes several upgrades:
 - it no longer lets new sessions recover from memory, and instead requires `SESSION_STATE.md` as the recovery entry point
 - it no longer jumps directly into a scene, and instead requires `Project Preflight` before scene execution
 - it no longer gives the coding agent a broad task, and instead requires each function block and mission block to define scope, boundaries, quality checks, and rollback notes
+- it no longer assumes the Builder always authors the UI, and instead records when the experience layer is handed off to an external tool before integration work begins
 
 ---
 
@@ -105,6 +112,7 @@ If only the most important rules survive, keep at least these five:
 5. Review must use structured output.
 6. `SESSION_STATE.md` must be updated before every session ends.
 7. If the user provides only repository plus scene, the agent must bootstrap from repository rules instead of asking for internal document paths again.
+8. If the `experience` layer is affected, the parent `FB` must record `experience_delivery_mode` before any dependent UI integration `MB` begins.
 
 ---
 
@@ -159,7 +167,9 @@ The scene-to-file map lives in `docs/08-session-bootstrap.md`.
 3. 所有重要决策都必须进入仓库文件，不能只留在聊天记录。
 4. 任务必须有边界，不能只给模型一个宽泛目标就让它开始编码。
 5. 完成必须靠证据，而不是靠自我陈述。
-6. 失败后要回到正确阶段，而不是盲目重复尝试。
+6. 少即是多。永远保持简单。
+7. 失败后要回到正确阶段，而不是盲目重复尝试。
+8. 当体验层由外部交付时，应把外部 UI 包视为输入权威，而不是要求 Builder 去发明视觉设计。
 
 ## 五个角色
 
@@ -214,6 +224,7 @@ The scene-to-file map lives in `docs/08-session-bootstrap.md`.
 - 不再让新会话靠记忆恢复，而是要求使用 `SESSION_STATE.md` 作为恢复入口
 - 不再直接跳进某个场景，而是要求先执行 `Project Preflight`
 - 不再给编码代理宽泛任务，而是要求每个 function block 和 mission block 都定义范围、边界、质量检查和回滚说明
+- 不再默认 Builder 总是 UI 作者，而是要求在 UI 集成工作开始前先记录体验层是否交给外部工具交付
 
 ## 最小执行规则
 
@@ -226,6 +237,7 @@ The scene-to-file map lives in `docs/08-session-bootstrap.md`.
 5. 审查必须使用结构化输出
 6. 每次会话结束前必须更新 `SESSION_STATE.md`
 7. 如果用户只给“仓库 + 场景”，代理必须按仓库规则自行启动，而不是再次索要内部文档路径
+8. 如果 `experience` 层受影响，父 `FB` 必须在任何依赖它的 UI 集成 `MB` 开始前记录 `experience_delivery_mode`
 
 ## 与仓库的关系
 

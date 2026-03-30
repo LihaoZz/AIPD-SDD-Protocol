@@ -12,16 +12,15 @@ PROTOCOL_ROOT = Path(__file__).resolve().parent.parent
 
 PROTOCOL_FILES = [
     "README.md",
-    "docs/00-roadmap.md",
-    "docs/01-principles.md",
-    "docs/02-lifecycle.md",
-    "docs/03-artifacts.md",
-    "docs/04-mission-blocks.md",
-    "docs/05-review-recovery.md",
-    "docs/06-operating-playbook.md",
-    "docs/07-repository-layout.md",
-    "docs/08-session-bootstrap.md",
-    "docs/SDD_MASTER_PROTOCOL_V4.md",
+    "docs/00_lifecycle.md",
+    "docs/01_principles.md",
+    "docs/02_artifacts.md",
+    "docs/03_mission_blocks.md",
+    "docs/04_review_recovery.md",
+    "docs/05_operating_playbook.md",
+    "docs/06_session_bootstrap.md",
+    "docs/07_repository_layout.md",
+    "docs/99_legacy_master_protocol_v4.md",
     "prompts/SPEC_ARCHITECT.system.md",
     "prompts/BUILDER.system.md",
     "prompts/REVIEWER.system.md",
@@ -116,7 +115,20 @@ SESSION_STATE_FIELDS = [
     "action",
 ]
 
-FUNCTION_FIELDS = [
+FUNCTION_REQUIRED_HEADINGS = [
+    "# Function Block",
+    "## Metadata",
+    "## Product Goal",
+    "## Ontology Frame",
+    "## Impact Map",
+    "## Experience Delivery",
+    "## Scope",
+    "## Acceptance",
+    "## Mission Plan",
+    "## Usage Rules",
+]
+
+FUNCTION_CORE_FIELDS = [
     "fb_id",
     "title",
     "status",
@@ -147,23 +159,28 @@ FUNCTION_FIELDS = [
     "service_layer",
     "data_layer",
     "quality_layer",
+    "experience_delivery_mode",
     "in_scope",
     "out_of_scope",
-    "dependencies",
-    "related_artifacts",
-    "overall_risk",
-    "quality_rulebook",
-    "special_quality_concerns",
     "acceptance_criteria",
-    "release_blockers",
     "planned_mbs",
-    "completed_mbs",
-    "failed_mbs",
-    "open_questions",
     "next_recommended_mb",
 ]
 
-MISSION_FIELDS = [
+MISSION_REQUIRED_HEADINGS = [
+    "# Mission Block",
+    "## Metadata",
+    "## Parent FB Alignment",
+    "## Goal",
+    "## Inputs",
+    "## Boundaries",
+    "## Quality Plan",
+    "## Evidence Required",
+    "## Result",
+    "## Usage Rules",
+]
+
+MISSION_CORE_FIELDS = [
     "mb_id",
     "parent_fb_id",
     "status",
@@ -174,29 +191,16 @@ MISSION_FIELDS = [
     "affected_layers_in_scope",
     "deferred_ontology_elements",
     "deferred_layers",
-    "alignment_notes",
     "goal",
-    "hypothesis",
+    "input_artifacts",
     "allowed_files",
-    "forbidden_files",
-    "change_budget",
-    "risk_level",
-    "user_visible_before",
-    "checks_before",
-    "known_problem_before",
-    "artifact_state_before",
     "quality_profile",
     "selected_quality_checks",
-    "waived_checks",
     "required_commands",
-    "regression_rule",
     "pass_condition",
     "required_test_evidence",
     "required_artifact_updates",
     "required_quality_report",
-    "checkpoint",
-    "safe_revert_path",
-    "changed_files",
     "outcome",
     "next_action",
 ]
@@ -206,6 +210,7 @@ QUALITY_ALLOWED_PROFILE = {"standard", "strict"}
 QUALITY_ALLOWED_RESULT = {"pass", "fail", "rework_required"}
 QUALITY_ALLOWED_STATUS = {"pass", "fail", "waived", "not_applicable"}
 ONTOLOGY_ALLOWED_STATUS = {"confirmed", "assumed", "risk", "out_of_scope"}
+EXPERIENCE_ALLOWED_MODE = {"builder_generated", "external_ui_package", "hybrid", "not_applicable"}
 SUPPORTED_SCENES = {"greenfield", "expansion", "continue", "review", "recovery"}
 
 
@@ -241,29 +246,31 @@ def require_headings(path: Path, headings: list[str], errors: list[str], base: O
             fail(f"{display_path(path, base)} missing heading: {heading}", errors)
 
 
-def require_markdown_fields(path: Path, fields: list[str], errors: list[str], base: Optional[Path] = None) -> None:
-    text = read_text(path)
-    for field in fields:
-        pattern = rf"^- `{re.escape(field)}`:\s*(.+)$"
-        match = re.search(pattern, text, re.MULTILINE)
-        if match is None:
-            fail(f"{display_path(path, base)} missing field: {field}", errors)
-            continue
-        if not match.group(1).strip():
-            fail(f"{display_path(path, base)} has empty field: {field}", errors)
-
-
-def find_markdown_value(path: Path, field: str, errors: list[str], base: Path) -> Optional[str]:
+def find_markdown_value(path: Path, field: str, errors: list[str], base: Optional[Path] = None) -> Optional[str]:
     text = read_text(path)
     match = re.search(rf"^- `{re.escape(field)}`:\s*(.+)$", text, re.MULTILINE)
     if match is None:
-        fail(f"{display_path(path, base)} missing {field} value", errors)
+        fail(f"{display_path(path, base)} missing field: {field}", errors)
         return None
     value = match.group(1).strip()
     if not value:
-        fail(f"{display_path(path, base)} has empty {field} value", errors)
+        fail(f"{display_path(path, base)} has empty field: {field}", errors)
         return None
     return value
+
+
+def optional_markdown_value(path: Path, field: str) -> Optional[str]:
+    text = read_text(path)
+    match = re.search(rf"^- `{re.escape(field)}`:\s*(.+)$", text, re.MULTILINE)
+    if match is None:
+        return None
+    value = match.group(1).strip()
+    return value or None
+
+
+def require_markdown_fields(path: Path, fields: list[str], errors: list[str], base: Optional[Path] = None) -> None:
+    for field in fields:
+        find_markdown_value(path, field, errors, base)
 
 
 def validate_protocol(root: Path) -> list[str]:
@@ -294,29 +301,16 @@ def validate_project(project_root: Path) -> list[str]:
         if active_function and active_function.lower() != "none":
             function_matches = sorted((project_root / "function_blocks").glob(f"{active_function}*.md"))
             if not function_matches:
-                fail(
-                    "SESSION_STATE.md points to an active function block that does not exist",
-                    errors,
-                )
+                fail("SESSION_STATE.md points to an active function block that does not exist", errors)
         if active_mission and active_mission.lower() != "none":
             mission_matches = sorted((project_root / "missions").glob(f"{active_mission}*.md"))
             if not mission_matches:
-                fail(
-                    "SESSION_STATE.md points to an active mission block that does not exist",
-                    errors,
-                )
+                fail("SESSION_STATE.md points to an active mission block that does not exist", errors)
 
-    function_dir = project_root / "function_blocks"
-    if not function_dir.is_dir():
-        fail(f"missing directory: {display_path(function_dir, project_root)}", errors)
-
-    mission_dir = project_root / "missions"
-    if not mission_dir.is_dir():
-        fail(f"missing directory: {display_path(mission_dir, project_root)}", errors)
-
-    review_dir = project_root / "reviews"
-    if not review_dir.is_dir():
-        fail(f"missing directory: {display_path(review_dir, project_root)}", errors)
+    for directory in ["function_blocks", "missions", "reviews"]:
+        path = project_root / directory
+        if not path.is_dir():
+            fail(f"missing directory: {display_path(path, project_root)}", errors)
 
     return errors
 
@@ -342,11 +336,7 @@ def evaluate_preflight(project_root: Path, scene: str) -> tuple[str, list[str], 
         "QUALITY_MEMORY.md",
         "SESSION_STATE.md",
     ]
-    foundational_dirs = [
-        "function_blocks",
-        "missions",
-        "reviews",
-    ]
+    foundational_dirs = ["function_blocks", "missions", "reviews"]
 
     existing_files = {name for name in foundational_files if (project_root / name).is_file()}
     existing_dirs = {name for name in foundational_dirs if (project_root / name).is_dir()}
@@ -360,8 +350,7 @@ def evaluate_preflight(project_root: Path, scene: str) -> tuple[str, list[str], 
             missing_items.append(name)
 
     if scene == "greenfield":
-        for name in missing_items:
-            auto_actions.append(f"initialize {name}")
+        auto_actions.extend([f"initialize {name}" for name in missing_items])
         result = "ready" if not missing_items else "bootstrap_required"
         return result, checked_items, missing_items, auto_actions, blocking_items, True
 
@@ -442,25 +431,9 @@ def validate_function(path: Path, project_root: Optional[Path] = None) -> list[s
         fail(f"missing function block file: {path}", errors)
         return errors
 
-    require_headings(
-        path,
-        [
-            "# Function Block",
-            "## Metadata",
-            "## Product Goal",
-            "## Ontology Frame",
-            "## Impact Map",
-            "## Scope",
-            "## Quality Context",
-            "## Acceptance",
-            "## Mission Plan",
-            "## Notes",
-            "## Usage Rules",
-        ],
-        errors,
-        project_root,
-    )
-    require_markdown_fields(path, FUNCTION_FIELDS, errors, project_root)
+    require_headings(path, FUNCTION_REQUIRED_HEADINGS, errors, project_root)
+    require_markdown_fields(path, FUNCTION_CORE_FIELDS, errors, project_root)
+
     for field in [
         "actor_status",
         "goal_status",
@@ -471,12 +444,26 @@ def validate_function(path: Path, project_root: Optional[Path] = None) -> list[s
         "rule_status",
         "evidence_status",
     ]:
-        value = find_markdown_value(path, field, errors, project_root or PROTOCOL_ROOT)
+        value = find_markdown_value(path, field, errors, project_root)
         if value is not None and value not in ONTOLOGY_ALLOWED_STATUS:
-            fail(
-                f"{display_path(path, project_root)} has invalid {field}: {value}",
-                errors,
-            )
+            fail(f"{display_path(path, project_root)} has invalid {field}: {value}", errors)
+
+    mode = find_markdown_value(path, "experience_delivery_mode", errors, project_root)
+    if mode is not None and mode not in EXPERIENCE_ALLOWED_MODE:
+        fail(f"{display_path(path, project_root)} has invalid experience_delivery_mode: {mode}", errors)
+
+    if mode in {"external_ui_package", "hybrid"}:
+        require_markdown_fields(
+            path,
+            ["experience_input_artifacts", "experience_builder_scope"],
+            errors,
+            project_root,
+        )
+        for field in ["experience_input_artifacts", "experience_builder_scope"]:
+            value = optional_markdown_value(path, field)
+            if value is not None and value.lower() == "none":
+                fail(f"{display_path(path, project_root)} has invalid {field}: none", errors)
+
     return errors
 
 
@@ -486,25 +473,19 @@ def validate_mission(path: Path, project_root: Optional[Path] = None) -> list[st
         fail(f"missing mission file: {path}", errors)
         return errors
 
-    require_headings(
-        path,
-        [
-            "# Mission Block",
-            "## Metadata",
-            "## Parent FB Alignment",
-            "## Boundaries",
-            "## Goal",
-            "## Baseline",
-            "## Quality Plan",
-            "## Evidence Required",
-            "## Rollback",
-            "## Result",
-            "## Usage Rules",
-        ],
-        errors,
-        project_root,
-    )
-    require_markdown_fields(path, MISSION_FIELDS, errors, project_root)
+    require_headings(path, MISSION_REQUIRED_HEADINGS, errors, project_root)
+    require_markdown_fields(path, MISSION_CORE_FIELDS, errors, project_root)
+
+    quality_profile = find_markdown_value(path, "quality_profile", errors, project_root)
+    if quality_profile is not None and quality_profile not in QUALITY_ALLOWED_PROFILE:
+        fail(f"{display_path(path, project_root)} has invalid quality_profile: {quality_profile}", errors)
+
+    input_artifacts = find_markdown_value(path, "input_artifacts", errors, project_root)
+    if input_artifacts is not None and input_artifacts.lower() != "none":
+        ready_check = find_markdown_value(path, "input_ready_check", errors, project_root)
+        if ready_check is not None and ready_check.lower() == "none":
+            fail(f"{display_path(path, project_root)} has invalid input_ready_check: none", errors)
+
     return errors
 
 
@@ -634,10 +615,7 @@ def main() -> int:
     project_parser = subparsers.add_parser("check-project", help="Validate an external project root.")
     project_parser.add_argument("project_root", help="Path to the external project root.")
 
-    preflight_parser = subparsers.add_parser(
-        "check-preflight",
-        help="Run project preflight for one scene and classify readiness.",
-    )
+    preflight_parser = subparsers.add_parser("check-preflight", help="Run project preflight for one scene.")
     preflight_parser.add_argument("project_root", help="Path to the external project root.")
     preflight_parser.add_argument("scene", help="Scene to evaluate.")
 

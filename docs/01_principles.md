@@ -8,6 +8,7 @@
 4. Do not treat conversation memory as a reliable source of truth.
 5. Do not accept "done" without evidence.
 6. Do not expand scope inside implementation tasks.
+7. Do not let the Builder improvise visual design when the experience layer is assigned to an external UI tool or authority.
 
 Simplicity means:
 
@@ -80,6 +81,13 @@ When a problem is discovered, route it by ownership:
 - `environment_issue` -> `Recovery Coordinator`
 - `review_context_gap` -> current scene lead role
 
+When the experience layer is externally delivered, role separation also means:
+
+- the user or external tool owns the visual authority
+- the `Spec Architect` records that delivery decision in the FB
+- the `Builder` integrates the approved UI package instead of inventing a new one
+- the `Reviewer` verifies integration and alignment instead of silently accepting visual drift
+
 ---
 
 ## Ontology Skeleton vs Engineering Map
@@ -115,6 +123,27 @@ Think of it like this:
 
 ---
 
+## Experience Delivery Rule
+
+If the `experience` layer is affected, the protocol must also decide how that layer is delivered.
+
+Use `experience_delivery_mode` in the parent `FB`:
+
+- `builder_generated`: the Builder may implement the experience layer directly
+- `external_ui_package`: the visual UI is produced outside the Builder workflow and then handed back as an input artifact
+- `hybrid`: the base visual UI comes from an external authority, but the Builder may complete a small approved portion of the experience work
+- `not_applicable`: the current function does not change the experience layer
+
+When the mode is `external_ui_package` or `hybrid`:
+
+- the `FB` must name the affected surfaces and expected external inputs
+- any `MB` that depends on those inputs must list them explicitly
+- the `Builder` may integrate states, routing, API calls, and validation logic
+- the `Builder` must not improvise a new visual language, layout direction, or component styling
+- the `Reviewer` should verify that the approved external UI input was consumed correctly
+
+---
+
 ## Non-Technical User Rule
 
 The user is not required to provide technical solutions.
@@ -146,6 +175,7 @@ The user must still decide:
 4. 不要把聊天记忆当成可靠真理源。
 5. 没有证据，就不要接受“完成了”。
 6. 不要在实现任务内部偷偷扩范围。
+7. 当体验层已经被分配给外部 UI 工具或视觉权威时，不要让 Builder 临场发挥视觉设计。
 
 简单意味着：
 
@@ -214,6 +244,13 @@ The user must still decide:
 - `environment_issue` -> `Recovery Coordinator`
 - `review_context_gap` -> 当前场景主导角色
 
+当体验层由外部交付时，角色分离还意味着：
+
+- 用户或外部工具拥有视觉权威
+- `Spec Architect` 负责把这项交付决策写进 FB
+- `Builder` 负责集成批准后的 UI 包，而不是重新发明一套
+- `Reviewer` 负责检查集成和对齐情况，而不是默许视觉漂移
+
 ### 本体骨架 vs 工程地图
 
 不要把这两个概念混在一起。
@@ -244,6 +281,25 @@ The user must still decide:
 
 - 本体框架 = 意义骨架
 - 影响地图 = 实现落面
+
+### 体验交付规则
+
+如果 `experience` 层受影响，协议还必须决定这一层由谁交付、如何交付。
+
+在父 `FB` 中使用 `experience_delivery_mode`：
+
+- `builder_generated`：体验层由 Builder 直接实现
+- `external_ui_package`：视觉 UI 在 Builder 工作流外部产出，再作为输入工件回交
+- `hybrid`：基础视觉 UI 来自外部权威，但 Builder 可以完成少量经过批准的体验补充工作
+- `not_applicable`：当前功能不改变体验层
+
+当模式是 `external_ui_package` 或 `hybrid` 时：
+
+- `FB` 必须写明受影响界面和预期的外部输入
+- 任何依赖这些输入的 `MB` 都必须显式列出它们
+- `Builder` 可以集成状态、路由、API 调用和校验逻辑
+- `Builder` 不得临场发明新的视觉语言、布局方向或组件样式
+- `Reviewer` 应检查批准后的外部 UI 输入是否被正确消费
 
 ### 非技术用户规则
 

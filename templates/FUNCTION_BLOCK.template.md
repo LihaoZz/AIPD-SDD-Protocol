@@ -42,46 +42,47 @@
 - `data_layer`:
 - `quality_layer`:
 
+## Experience Delivery
+
+- `experience_delivery_mode`:
+- `experience_input_artifacts`:
+- `experience_builder_scope`:
+
 ## Scope
 
 - `in_scope`:
 - `out_of_scope`:
-- `dependencies`:
-- `related_artifacts`:
-
-## Quality Context
-
-- `overall_risk`:
-- `quality_rulebook`: `<PROJECT_ROOT>/QUALITY_RULEBOOK.md`
-- `special_quality_concerns`:
 
 ## Acceptance
 
 - `acceptance_criteria`:
-- `release_blockers`:
 
 ## Mission Plan
 
 - `planned_mbs`:
+- `next_recommended_mb`:
+
+## Optional Appendix
+
+- `dependencies`:
+- `related_artifacts`:
+- `overall_risk`:
+- `special_quality_concerns`:
+- `release_blockers`:
 - `completed_mbs`:
 - `failed_mbs`:
-
-## Notes
-
 - `open_questions`:
-- `next_recommended_mb`:
 
 ## Usage Rules
 
 - One `FB` may contain multiple `MB`s.
 - `FB` defines the product goal and final acceptance.
-- `FB` must not enter detailed planning until all 8 ontology elements are covered.
+- Do not enter detailed planning until all 8 ontology elements are covered.
 - Each ontology status must be one of: `confirmed`, `assumed`, `risk`, or `out_of_scope`.
-- `Impact Map` explains where this function lands in engineering, not what the function is.
-- Each `*_layer` field should include: `affected=...; why=...; artifact_updates=...; validation_needed=...`.
-- `MB` defines one independent code change attempt under this `FB`.
-- Use compact IDs such as `fb2-mb1`, `fb2-mb2`, and `fb2-mb3`.
-- The `FB` should track MB history so quality issues can be traced back to the exact feature effort.
+- Each `*_layer` field should use: `affected=...; why=...; artifact_updates=...; validation_needed=...`.
+- `experience_delivery_mode` must be one of: `builder_generated`, `external_ui_package`, `hybrid`, or `not_applicable`.
+- `experience_input_artifacts` and `experience_builder_scope` are required only when the mode is `external_ui_package` or `hybrid`.
+- `Optional Appendix` may be omitted entirely when it adds no useful clarity.
 
 ---
 
@@ -131,43 +132,44 @@
 - `data_layer`：数据层影响
 - `quality_layer`：质量层影响
 
+#### 体验交付
+
+- `experience_delivery_mode`：体验层交付方式
+- `experience_input_artifacts`：外部 UI 输入工件
+- `experience_builder_scope`：Builder 可负责的集成范围
+
 #### 范围
 
 - `in_scope`：范围内内容
 - `out_of_scope`：范围外内容
-- `dependencies`：依赖项
-- `related_artifacts`：相关真理源文件
-
-#### 质量上下文
-
-- `overall_risk`：整体风险
-- `quality_rulebook`：质量规则手册路径
-- `special_quality_concerns`：特殊质量关注点
 
 #### 验收
 
 - `acceptance_criteria`：验收标准
-- `release_blockers`：发布阻塞项
 
 #### Mission 计划
 
 - `planned_mbs`：计划中的 mission blocks
+- `next_recommended_mb`：建议的下一个 MB
+
+#### 可选附录
+
+- `dependencies`：依赖项
+- `related_artifacts`：相关真理源文件
+- `overall_risk`：整体风险
+- `special_quality_concerns`：特殊质量关注点
+- `release_blockers`：发布阻塞项
 - `completed_mbs`：已完成的 mission blocks
 - `failed_mbs`：失败的 mission blocks
-
-#### 备注
-
 - `open_questions`：未决问题
-- `next_recommended_mb`：建议的下一个 MB
 
 #### 使用规则
 
 - 一个 `FB` 可以包含多个 `MB`。
 - `FB` 负责定义产品目标和最终验收。
-- 在 8 个本体元素全部被覆盖之前，`FB` 不得进入详细规划。
+- 在 8 个本体元素全部被覆盖之前，不得进入详细规划。
 - 每个本体元素状态只能是：`confirmed`、`assumed`、`risk` 或 `out_of_scope`。
-- `Impact Map` 用来说明这个功能会落到哪些工程层，不是重复描述功能本身。
 - 每个 `*_layer` 字段都应使用这种格式：`affected=...; why=...; artifact_updates=...; validation_needed=...`。
-- `MB` 负责定义该 `FB` 下的一次独立代码改动尝试。
-- 使用精简命名，例如 `fb2-mb1`、`fb2-mb2`、`fb2-mb3`。
-- `FB` 应记录 MB 历史，方便把质量问题追溯到具体功能开发过程。
+- `experience_delivery_mode` 必须是：`builder_generated`、`external_ui_package`、`hybrid` 或 `not_applicable` 之一。
+- 只有当模式为 `external_ui_package` 或 `hybrid` 时，才要求填写 `experience_input_artifacts` 和 `experience_builder_scope`。
+- `Optional Appendix` 在没有额外价值时可以整段省略。
