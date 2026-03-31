@@ -51,6 +51,8 @@
 
 - `hypothesis`:
 - `alignment_notes`:
+- `research_inputs`:
+- `external_tool_prompt_ref`:
 - `forbidden_files`:
 - `change_budget`:
 - `risk_level`:
@@ -75,6 +77,9 @@
 - `selected_quality_checks` must be chosen from `QUALITY_RULEBOOK.md`.
 - This `MB` is complete only when its required quality report exists and all required checks are evaluated.
 - `Optional Appendix` may be omitted entirely when it adds no useful clarity.
+- Use `research_inputs` and `external_tool_prompt_ref` only when the active `MB` depends on research or an external-tool prompt artifact.
+- `research_inputs` should use comma-separated relative paths under `research/`, or `none`.
+- `external_tool_prompt_ref` should use one relative path under `experience_prompts/`, or `none`.
 
 ---
 
@@ -133,6 +138,8 @@
 
 - `hypothesis`：本次改动假设
 - `alignment_notes`：本次 MB 如何保持与父 FB 对齐
+- `research_inputs`：当前 MB 使用的 research 输入或引用
+- `external_tool_prompt_ref`：外部工具 prompt 的引用或编号
 - `forbidden_files`：禁止修改的文件
 - `change_budget`：允许的最大改动面
 - `risk_level`：风险等级
@@ -157,3 +164,6 @@
 - `selected_quality_checks` 必须从 `QUALITY_RULEBOOK.md` 中选择。
 - 只有在所需质量报告存在且所有必需检查都已评估后，该 `MB` 才算完成。
 - `Optional Appendix` 在没有额外价值时可以整段省略。
+- 只有当前 `MB` 依赖 research 或外部工具 prompt 工件时，才填写 `research_inputs` 和 `external_tool_prompt_ref`。
+- `research_inputs` 应使用逗号分隔的相对路径，指向 `research/` 下的文件；没有时写 `none`。
+- `external_tool_prompt_ref` 应使用单个相对路径，指向 `experience_prompts/` 下的文件；没有时写 `none`。

@@ -71,7 +71,7 @@ Do not ask the user to restate internal protocol paths.
 | `Discovery` | Answer focused product questions | Reduce ambiguity and surface facts, assumptions, risks, and out-of-scope items | Discovery notes |
 | `Specification` | Confirm the proposed direction | Write or update source-of-truth artifacts and define scope boundaries | Stable project truth |
 | `Planning` | Approve or adjust priorities | Split work into function blocks and mission blocks | Bounded delivery plan |
-| `External UI Handoff` | Provide or approve external UI output when needed | Record `experience_delivery_mode`, define the handoff, and wait for the approved package before dependent UI integration work | External UI package or explicit Builder-owned decision |
+| `External UI Handoff` | Provide or approve external UI output when needed | Record `experience_delivery_mode`, persist the handoff prompt when relevant, and wait for the approved package before dependent UI integration work | External UI package, approved experience prompt, or explicit Builder-owned decision |
 | `Implementation` | Observe progress and answer business tradeoff questions when needed | Implement one mission block at a time under the active function block | Code plus evidence |
 | `Review` | Decide whether findings are acceptable or need correction | Audit scope, correctness, and quality gates | Structured quality report |
 | `Recovery` | Clarify priorities if work is blocked or broken | Restore a controlled next move instead of improvising | Recovery plan |
@@ -83,7 +83,7 @@ Do not ask the user to restate internal protocol paths.
 2. The agent runs `Project Preflight` before entering scene work.
 3. The protocol asks enough questions to remove dangerous ambiguity.
 4. The protocol writes the answers into stable artifacts.
-5. If the experience layer is externally delivered, the handoff is recorded before dependent UI integration work starts.
+5. If the experience layer is externally delivered, the handoff contract is recorded in artifacts before dependent UI integration work starts.
 6. The implementation work is cut into small bounded units.
 7. The Builder executes one bounded unit at a time.
 8. Review is based on evidence, not on confidence.
@@ -205,6 +205,11 @@ Before a real project can run smoothly, prepare at least:
 - `<PROJECT_ROOT>/SCOPE.md`
 - `<PROJECT_ROOT>/DECISIONS.md`
 - `<PROJECT_ROOT>/SESSION_STATE.md`
+
+Optional when used:
+
+- `<PROJECT_ROOT>/research/*.md`
+- `<PROJECT_ROOT>/experience_prompts/*.md`
 
 If the system has APIs or persistence, also prepare:
 

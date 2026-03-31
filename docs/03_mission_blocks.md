@@ -104,6 +104,68 @@ The Builder should consume the approved input, then connect:
 - API calls
 - the smallest necessary structural adjustments
 
+## Research Support Rule
+
+`Research` may support `FB` planning or active `MB` execution, but it does not become a new execution standard.
+
+Trigger rule:
+
+- `user_triggered` research may run immediately
+- `system_triggered` research requires user approval before search begins
+
+Scope rule:
+
+- `Spec Architect` may use research for market scan, tool discovery, similar-product review, or external references during spec work
+- `Builder` may use research only for the active `MB`, such as bounded technical problem solving, official-doc lookup, or mature implementation references
+- research must not expand the active `MB` scope
+
+Recording rule:
+
+- reusable results should be written into `DECISIONS.md`, the active `FB`, the active `MB`, or a `RESEARCH_NOTE`
+- do not leave adopted external facts only in chat history
+
+## UI Reference And Prompt Rule
+
+UI-related research may provide:
+
+- style references
+- mature patterns
+- component directions
+- rendering approaches
+- similar-product visual examples
+
+That research may support recommendation work, but it does not own the final design direction.
+
+Before generating any external-tool UI prompt:
+
+- the user must confirm which references are adopted
+- the user must confirm the final visual direction
+- the user must confirm the design core
+- the user must confirm the major UI decisions that determine generation quality
+
+After confirmation, the external-tool prompt should stay derived from:
+
+- the parent `FB`
+- the active or planned `MB`
+- the approved visual direction
+- the required states and branches
+- the resolved layout, density, component, color, typography, interaction, motion, responsive, and accessibility decisions
+
+If the prompt targets the same page family as earlier or later work, it must also define:
+
+- the `page_family_id`
+- the shared shell scope
+- the family source refs that anchor the contract
+- what must stay identical across states or sibling `MB`s
+- what variation is allowed
+- the forbidden drift list
+
+Persist that prompt in `experience_prompts/*.md`, include the final copy-paste-ready prompt body in that artifact, and let any dependent integration `MB` point to it through `external_tool_prompt_ref`.
+
+The returned output becomes an `input_artifact` for a later integration `MB`.
+
+Dependent `MB`s in the same page family should reuse that handoff contract instead of silently inventing a new shell.
+
 ## Naming Rule
 
 Use compact IDs that make the hierarchy obvious.
@@ -247,6 +309,68 @@ Builder 负责消费批准输入，并连接：
 - 校验
 - API 调用
 - 最小必要结构调整
+
+### Research 支持规则
+
+`Research` 可以支持 `FB` 规划或当前激活 `MB` 的执行，但它不会变成新的执行标准。
+
+触发规则：
+
+- `user_triggered` research 可以直接执行
+- `system_triggered` research 在搜索开始前必须先得到用户同意
+
+范围规则：
+
+- `Spec Architect` 可以在规格阶段用 research 做市场扫描、工具发现、相似产品查看或外部参考收集
+- `Builder` 只能为当前 `MB` 使用 research，例如解决有边界技术问题、查官方文档或参考成熟实现
+- research 不能扩大当前 `MB` 的范围
+
+记录规则：
+
+- 可复用结果应写入 `DECISIONS.md`、当前 `FB`、当前 `MB` 或 `RESEARCH_NOTE`
+- 采纳后的外部事实不能只停留在聊天记录里
+
+### UI 参考与 Prompt 规则
+
+UI 相关 research 可以提供：
+
+- 风格参考
+- 成熟模式
+- 组件方向
+- 渲染方案
+- 相似产品视觉案例
+
+这些 research 可以支持建议，但它们不能拥有最终设计定调权。
+
+在生成任何 UI 外部工具 prompt 前：
+
+- 必须由用户确认采纳哪些参考
+- 必须由用户确认最终视觉方向
+- 必须由用户确认设计核心
+- 必须由用户确认决定生成质量的主要 UI 决策
+
+确认后生成的外部工具 prompt，必须继续来源于：
+
+- 父 `FB`
+- 当前或计划中的 `MB`
+- 已确认视觉方向
+- 必须覆盖的状态和分叉
+- 已经定下来的布局、密度、组件、颜色、排版、交互、动效、响应式和可访问性决策
+
+这个 prompt 必须固化到 `experience_prompts/*.md`，并在工件中包含最终可直接复制的提示词正文，再由依赖它的集成 `MB` 通过 `external_tool_prompt_ref` 指向。
+
+外部工具返回产物随后变成后续集成 `MB` 的 `input_artifact`。
+
+如果这个 prompt 面向与更早或更晚工作共享的同一页面族，还必须额外写清：
+
+- `page_family_id`
+- 共享壳子的范围
+- 哪些 family source refs 定义了这份契约
+- 哪些部分在不同状态或同级 `MB` 中必须保持一致
+- 哪些部分允许变化
+- 禁止发生哪些 drift
+
+同一页面族下的依赖 `MB`，应复用这份交接契约，而不是静默发明新的壳子。
 
 ### 命名规则
 

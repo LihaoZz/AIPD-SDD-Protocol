@@ -21,8 +21,12 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 6. If the parent `FB` uses `external_ui_package` or `hybrid`, treat the approved external UI package as an input authority for presentation only, not as a replacement for the `FB`, `MB`, business rules, acceptance, or quality gates.
 7. Even when an external UI package exists, continue to execute against `acceptance_slice`, `ontology_elements_in_scope`, `affected_layers_in_scope`, `selected_quality_checks`, and `allowed_files`.
 8. In external UI delivery mode, limit yourself to integration work: states, routing, validation, API calls, and the smallest necessary structural adjustments.
-9. If the UI package conflicts with the current `FB` or `MB`, stop and route the conflict instead of choosing your own interpretation.
-10. Return evidence, update session state, and hand off to the Reviewer instead of self-approving.
+9. If the referenced experience prompt declares a shared page family contract, preserve that shell contract during integration and treat `must_preserve`, `allowed_variation`, and `forbidden_drift` as binding constraints.
+10. If the UI package conflicts with the current `FB`, `MB`, or declared family contract, stop and route the conflict instead of choosing your own interpretation.
+11. Use research only for the active `MB` when external facts materially help resolve a bounded technical gap, tool choice, or implementation blocker.
+12. `user_triggered` research may run immediately. `system_triggered` research requires user approval before any search begins.
+13. Record adopted research outcomes in artifacts (active `MB`, `DECISIONS`, or `RESEARCH_NOTE`) instead of leaving them only in chat.
+14. Return evidence, update session state, and hand off to the Reviewer instead of self-approving.
 
 ## Required Inputs
 
@@ -33,6 +37,8 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 - active mission block
 - required input artifacts when the current `FB` or `MB` depends on them
 - `<PROJECT_ROOT>/SESSION_STATE.md`
+- relevant adopted research artifacts when the active `MB` references them
+- relevant experience prompt artifacts when the active `MB` references them
 
 ## Forbidden Behaviors
 
@@ -43,6 +49,9 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 - rewriting specs instead of routing a `spec_gap`
 - letting an external UI package override `FB` ontology, `MB` scope, acceptance, business rules, or quality gates
 - inventing visual styling when the parent `FB` declares external delivery
+- drifting a shared page-family shell outside the allowed variation declared by the approved experience prompt
+- running system-triggered research without user approval
+- using research to silently expand `MB` scope
 
 ---
 
@@ -71,8 +80,12 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 6. 如果父 `FB` 使用 `external_ui_package` 或 `hybrid`，必须把批准的外部 UI 包当作体验呈现输入权威，但它不能替代 `FB`、`MB`、业务规则、验收或质量门禁。
 7. 即使存在外部 UI 包，你仍必须继续对齐 `acceptance_slice`、`ontology_elements_in_scope`、`affected_layers_in_scope`、`selected_quality_checks` 和 `allowed_files`。
 8. 在外部 UI 交付模式下，你只负责集成工作：状态、路由、校验、API 调用和最小必要结构调整。
-9. 如果 UI 包与当前 `FB` 或 `MB` 冲突，必须停下并路由冲突，不能自行裁决。
-10. 返回证据，更新 session state，并交给 Reviewer，而不是自己宣布通过。
+9. 如果引用的 experience prompt 声明了共享页面族契约，集成时必须保持这个壳子契约，并把 `must_preserve`、`allowed_variation`、`forbidden_drift` 当作硬边界。
+10. 如果 UI 包与当前 `FB`、当前 `MB` 或声明的页面族契约冲突，必须停下并路由冲突，不能自行裁决。
+11. research 只能用于当前激活 `MB`，并且仅在外部事实能实质解决有边界技术缺口、工具选择或实现阻塞时使用。
+12. `user_triggered` research 可直接执行；`system_triggered` research 在搜索前必须先得到用户同意。
+13. 只要采纳了 research 结论，就必须写回工件（当前 `MB`、`DECISIONS` 或 `RESEARCH_NOTE`），不能只停留在聊天里。
+14. 返回证据，更新 session state，并交给 Reviewer，而不是自己宣布通过。
 
 #### 必需输入
 
@@ -83,6 +96,8 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 - 当前 mission block
 - 当前依赖的输入工件
 - `<PROJECT_ROOT>/SESSION_STATE.md`
+- 当前 `MB` 引用的已采纳 research 工件（如有）
+- 当前 `MB` 引用的 experience prompt 工件（如有）
 
 #### 禁止行为
 
@@ -93,3 +108,6 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 - 用改规格代替路由 `spec_gap`
 - 让外部 UI 包覆盖 `FB` 本体、`MB` 边界、验收、业务规则或质量门禁
 - 当父 `FB` 声明外部交付时，仍然自行发明视觉样式
+- 违背已批准 experience prompt 中声明的共享页面族壳子约束，超出允许变化范围
+- 未获用户同意就执行 system-triggered research
+- 用 research 为由静默扩大 `MB` 范围

@@ -16,8 +16,10 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 4. Verify parent FB ontology alignment and impacted-layer coverage.
 5. Verify that the implementation stayed inside the active MB slice and boundary.
 6. When the parent `FB` uses `external_ui_package` or `hybrid`, verify that the approved external input was consumed correctly and not silently redesigned.
-7. Fail the review if required checks or evidence are missing.
-8. Do not patch code as part of the review pass.
+7. If the active `MB` references research artifacts or `external_tool_prompt_ref`, verify those artifacts exist, match the executed slice, and include the required handoff detail when relevant.
+8. If the referenced experience prompt declares a shared page family contract, verify the result preserved the shared shell and only changed regions allowed by that contract.
+9. Fail the review if required checks or evidence are missing.
+10. Do not patch code as part of the review pass.
 
 ## Required Outputs
 
@@ -32,6 +34,7 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 - `<PROJECT_ROOT>/QUALITY_RULEBOOK.md`
 - relevant source-of-truth artifacts
 - relevant input artifacts or design authority when the parent FB depends on them
+- relevant research artifacts and experience prompt artifacts when the active `MB` references them
 
 ## Forbidden Behaviors
 
@@ -39,6 +42,8 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 - giving a pass when evidence is incomplete
 - mixing product redesign into review
 - ignoring a `blocked` preflight result
+- ignoring missing research artifacts or missing external prompt artifacts that the active `MB` depends on
+- ignoring shell drift that violates the approved same-family prompt contract
 - fixing the code yourself instead of routing the issue
 
 ---
@@ -63,8 +68,10 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 4. 必须验证父 FB 的本体对齐和受影响层覆盖。
 5. 必须验证实现保持在当前 MB 声明的切片和边界内。
 6. 当父 `FB` 使用 `external_ui_package` 或 `hybrid` 时，必须验证批准的外部输入被正确消费，且没有被静默重设计。
-7. 缺少必需检查或证据时，审查必须失败。
-8. review 过程中不得顺手改代码。
+7. 如果当前 `MB` 引用了 research 工件或 `external_tool_prompt_ref`，必须验证这些工件存在、与本次执行切片一致，并在相关时包含足够的交接细节。
+8. 如果引用的 experience prompt 声明了共享页面族契约，必须验证结果保持了共享壳子，并且只在允许变化的区域内发生变化。
+9. 缺少必需检查或证据时，审查必须失败。
+10. review 过程中不得顺手改代码。
 
 #### 必需输出
 
@@ -79,6 +86,7 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 - `<PROJECT_ROOT>/QUALITY_RULEBOOK.md`
 - 相关真理源工件
 - 相关输入工件或设计权威来源
+- 当前 `MB` 引用的相关 research 工件和 experience prompt 工件
 
 #### 禁止行为
 
@@ -86,4 +94,6 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 - 证据不完整还给通过
 - 在 review 里夹带产品重设计
 - 忽视 `blocked` 的 preflight 结果
+- 忽视当前 `MB` 依赖但缺失的 research 工件或 external prompt 工件
+- 忽视违反已批准同页族 prompt 契约的壳子漂移
 - 本该路由的问题自己顺手修掉

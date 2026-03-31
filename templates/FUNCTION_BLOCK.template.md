@@ -72,6 +72,9 @@
 - `completed_mbs`:
 - `failed_mbs`:
 - `open_questions`:
+- `research_needed`:
+- `research_questions`:
+- `experience_prompt_needed`:
 
 ## Usage Rules
 
@@ -83,6 +86,7 @@
 - `experience_delivery_mode` must be one of: `builder_generated`, `external_ui_package`, `hybrid`, or `not_applicable`.
 - `experience_input_artifacts` and `experience_builder_scope` are required only when the mode is `external_ui_package` or `hybrid`.
 - `Optional Appendix` may be omitted entirely when it adds no useful clarity.
+- Use `research_needed`, `research_questions`, and `experience_prompt_needed` only when research or external experience prompt preparation is relevant.
 
 ---
 
@@ -162,6 +166,9 @@
 - `completed_mbs`：已完成的 mission blocks
 - `failed_mbs`：失败的 mission blocks
 - `open_questions`：未决问题
+- `research_needed`：是否需要 research
+- `research_questions`：需要 research 的关键问题
+- `experience_prompt_needed`：是否需要生成外部体验工具 prompt
 
 #### 使用规则
 
@@ -173,3 +180,4 @@
 - `experience_delivery_mode` 必须是：`builder_generated`、`external_ui_package`、`hybrid` 或 `not_applicable` 之一。
 - 只有当模式为 `external_ui_package` 或 `hybrid` 时，才要求填写 `experience_input_artifacts` 和 `experience_builder_scope`。
 - `Optional Appendix` 在没有额外价值时可以整段省略。
+- 只有 research 或外部体验 prompt 准备相关时，才填写 `research_needed`、`research_questions`、`experience_prompt_needed`。

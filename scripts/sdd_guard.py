@@ -29,12 +29,14 @@ PROTOCOL_FILES = [
     "templates/CONSTITUTION.template.md",
     "templates/DATA_MODEL.template.md",
     "templates/DECISIONS.template.md",
+    "templates/EXPERIENCE_PROMPT.template.md",
     "templates/FUNCTION_BLOCK.template.md",
     "templates/MISSION_BLOCK.template.md",
     "templates/PREFLIGHT_RESULT.template.md",
     "templates/QUALITY_MEMORY.template.md",
     "templates/QUALITY_REPORT.template.json",
     "templates/QUALITY_RULEBOOK.template.md",
+    "templates/RESEARCH_NOTE.template.md",
     "templates/SCOPE.template.md",
     "templates/SESSION_STATE.template.md",
 ]
@@ -212,6 +214,222 @@ QUALITY_ALLOWED_STATUS = {"pass", "fail", "waived", "not_applicable"}
 ONTOLOGY_ALLOWED_STATUS = {"confirmed", "assumed", "risk", "out_of_scope"}
 EXPERIENCE_ALLOWED_MODE = {"builder_generated", "external_ui_package", "hybrid", "not_applicable"}
 SUPPORTED_SCENES = {"greenfield", "expansion", "continue", "review", "recovery"}
+RESEARCH_ALLOWED_TRIGGER = {"user_triggered", "system_triggered"}
+RESEARCH_ALLOWED_APPROVAL_REQUIRED = {"yes", "no"}
+RESEARCH_ALLOWED_APPROVAL_STATUS = {"approved", "not_required"}
+EXPERIENCE_PROMPT_ALLOWED_TOOL = {"figma", "stitch", "other"}
+EXPERIENCE_PROMPT_ALLOWED_STATUS = {"draft", "approved_for_handoff", "superseded"}
+EXPERIENCE_PROMPT_ALLOWED_GOAL = {"canonical_shell", "state_variant", "family_extension", "independent_screen"}
+EXPERIENCE_PROMPT_ALLOWED_CONSISTENCY = {"same_family_strict", "same_family_adaptive", "not_applicable"}
+EXPERIENCE_PROMPT_ALLOWED_PROFILE = {
+    "stitch_first_pass",
+    "stitch_iterative_refine",
+    "figma_structured_handoff",
+    "general_structured_handoff",
+}
+FLAG_ALLOWED_VALUES = {"yes", "no"}
+
+PROTOCOL_REQUIRED_HEADINGS = {
+    "docs/00_lifecycle.md": [
+        "## Research Rule",
+        "## External Tool Prompt And Intake Rule",
+    ],
+    "docs/02_artifacts.md": [
+        "## Research Note Rule",
+        "## Experience Prompt Rule",
+    ],
+    "docs/03_mission_blocks.md": [
+        "## Research Support Rule",
+        "## UI Reference And Prompt Rule",
+    ],
+    "docs/05_operating_playbook.md": [
+        "## Research In Practice",
+        "## UI Prompt Generation In Practice",
+        "## Stitch Prompt Strategy In Practice",
+    ],
+    "templates/RESEARCH_NOTE.template.md": [
+        "# Research Note",
+        "## Metadata",
+        "## Query",
+        "## Findings",
+        "## Candidate Options",
+        "## Impact And Adoption",
+        "## Approval",
+        "## Usage Rules",
+    ],
+    "templates/EXPERIENCE_PROMPT.template.md": [
+        "# Experience Prompt",
+        "## Metadata",
+        "## Confirmed Direction",
+        "## Family Consistency Contract",
+        "## Scope",
+        "## Build Instructions",
+        "## Expected Return",
+        "## Prompt Strategy",
+        "## Copy-Paste Prompt",
+        "## Usage Rules",
+    ],
+}
+
+PROTOCOL_REQUIRED_SNIPPETS = {
+    "docs/00_lifecycle.md": [
+        "Prompt requirements are context-relative",
+        "page family",
+        "plain-language, screen-focused prompts",
+    ],
+    "docs/02_artifacts.md": [
+        "<PROJECT_ROOT>/experience_prompts/*.md",
+        "`external_tool_prompt_ref`",
+        "copy-paste-ready prompt",
+        "`prompt_goal_type`",
+        "`page_family_id`",
+        "`tool_guidance_profile`",
+    ],
+    "docs/03_mission_blocks.md": [
+        "experience_prompts/*.md",
+        "`external_tool_prompt_ref`",
+        "`page_family_id`",
+        "forbidden drift",
+    ],
+    "docs/05_operating_playbook.md": [
+        "screen by screen",
+        "plain language",
+        "`state_variant`",
+        "`canonical_shell`",
+        "`stitch_iterative_refine`",
+    ],
+    "prompts/SPEC_ARCHITECT.system.md": [
+        "experience prompt artifact",
+        "external-tool UI prompt",
+        "major UI decisions",
+        "page_family_id",
+        "shared-shell contract",
+    ],
+    "prompts/BUILDER.system.md": [
+        "experience prompt artifacts",
+        "RESEARCH_NOTE",
+        "forbidden_drift",
+    ],
+    "prompts/REVIEWER.system.md": [
+        "external_tool_prompt_ref",
+        "research artifacts",
+        "shared shell",
+    ],
+    "templates/FUNCTION_BLOCK.template.md": [
+        "`research_needed`:",
+        "`research_questions`:",
+        "`experience_prompt_needed`:",
+    ],
+    "templates/MISSION_BLOCK.template.md": [
+        "`research_inputs`:",
+        "`external_tool_prompt_ref`:",
+    ],
+    "templates/RESEARCH_NOTE.template.md": [
+        "`trigger_type`:",
+        "`user_approval_required`:",
+        "`user_approval_status`:",
+    ],
+    "templates/EXPERIENCE_PROMPT.template.md": [
+        "`page_family_id`:",
+        "`prompt_goal_type`:",
+        "`consistency_mode`:",
+        "`family_source_refs`:",
+        "`tool_guidance_profile`:",
+        "`target_tool`:",
+        "`visual_direction`:",
+        "`design_core`:",
+        "`shared_shell_scope`:",
+        "`allowed_variation`:",
+        "`forbidden_drift`:",
+        "`prompt_requirements`:",
+        "`expected_return_artifacts`:",
+        "## Copy-Paste Prompt",
+    ],
+}
+
+RESEARCH_REQUIRED_HEADINGS = [
+    "# Research Note",
+    "## Metadata",
+    "## Query",
+    "## Findings",
+    "## Candidate Options",
+    "## Impact And Adoption",
+    "## Approval",
+    "## Usage Rules",
+]
+
+RESEARCH_CORE_FIELDS = [
+    "research_id",
+    "trigger_type",
+    "owner_role",
+    "date",
+    "query",
+    "why_now",
+    "sources",
+    "facts",
+    "candidates",
+    "recommendation",
+    "impact_on_fb_or_mb",
+    "adopted_decision_ref",
+    "deferred_questions",
+    "user_approval_required",
+    "user_approval_status",
+]
+
+EXPERIENCE_PROMPT_REQUIRED_HEADINGS = [
+    "# Experience Prompt",
+    "## Metadata",
+    "## Confirmed Direction",
+    "## Family Consistency Contract",
+    "## Scope",
+    "## Build Instructions",
+    "## Expected Return",
+    "## Prompt Strategy",
+    "## Copy-Paste Prompt",
+    "## Usage Rules",
+]
+
+EXPERIENCE_PROMPT_CORE_FIELDS = [
+    "prompt_id",
+    "parent_fb_id",
+    "related_mb_ids",
+    "page_family_id",
+    "prompt_goal_type",
+    "consistency_mode",
+    "family_source_refs",
+    "tool_guidance_profile",
+    "target_tool",
+    "status",
+    "source_artifacts",
+    "adopted_reference_refs",
+    "visual_direction",
+    "design_core",
+    "information_density",
+    "layout_direction",
+    "component_style_direction",
+    "color_direction",
+    "typography_direction",
+    "interaction_direction",
+    "motion_direction",
+    "responsive_priority",
+    "accessibility_rules",
+    "references_to_avoid",
+    "shared_shell_scope",
+    "must_preserve",
+    "allowed_variation",
+    "forbidden_drift",
+    "component_contract_expectations",
+    "page_or_component_goal",
+    "states_and_branches",
+    "required_flows",
+    "style_direction",
+    "must_do",
+    "must_not_do",
+    "expected_return_artifacts",
+    "downstream_intake_notes",
+    "prompt_requirements",
+    "tool_specific_notes",
+]
 
 
 def read_text(path: Path) -> str:
@@ -246,6 +464,25 @@ def require_headings(path: Path, headings: list[str], errors: list[str], base: O
             fail(f"{display_path(path, base)} missing heading: {heading}", errors)
 
 
+def require_snippets(path: Path, snippets: list[str], errors: list[str], base: Optional[Path] = None) -> None:
+    text = read_text(path)
+    for snippet in snippets:
+        if snippet not in text:
+            fail(f"{display_path(path, base)} missing snippet: {snippet}", errors)
+
+
+def require_section_body(path: Path, heading: str, errors: list[str], base: Optional[Path] = None) -> None:
+    text = read_text(path)
+    pattern = re.compile(rf"^{re.escape(heading)}\s*$\n(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL)
+    match = pattern.search(text)
+    if match is None:
+        fail(f"{display_path(path, base)} missing heading: {heading}", errors)
+        return
+    body = match.group("body").strip()
+    if not body:
+        fail(f"{display_path(path, base)} has empty section: {heading}", errors)
+
+
 def find_markdown_value(path: Path, field: str, errors: list[str], base: Optional[Path] = None) -> Optional[str]:
     text = read_text(path)
     match = re.search(rf"^- `{re.escape(field)}`:\s*(.+)$", text, re.MULTILINE)
@@ -276,8 +513,66 @@ def require_markdown_fields(path: Path, fields: list[str], errors: list[str], ba
 def validate_protocol(root: Path) -> list[str]:
     errors: list[str] = []
     for rel_path in PROTOCOL_FILES:
-        require_file(root / rel_path, errors, root)
+        path = root / rel_path
+        require_file(path, errors, root)
+        if path.is_file():
+            if rel_path in PROTOCOL_REQUIRED_HEADINGS:
+                require_headings(path, PROTOCOL_REQUIRED_HEADINGS[rel_path], errors, root)
+            if rel_path in PROTOCOL_REQUIRED_SNIPPETS:
+                require_snippets(path, PROTOCOL_REQUIRED_SNIPPETS[rel_path], errors, root)
     return errors
+
+
+def parse_reference_list(value: str) -> list[str]:
+    normalized = value.strip()
+    if normalized.lower() == "none":
+        return []
+    return [item.strip() for item in normalized.split(",") if item.strip()]
+
+
+def validate_relative_file_refs(
+    path: Path,
+    field: str,
+    value: str,
+    errors: list[str],
+    project_root: Optional[Path],
+    allowed_prefixes: Optional[tuple[str, ...]] = None,
+) -> None:
+    if project_root is None:
+        return
+    refs = parse_reference_list(value)
+    if not refs:
+        fail(f"{display_path(path, project_root)} has invalid {field}: none", errors)
+        return
+
+    root = project_root.resolve()
+    for ref in refs:
+        ref_path = Path(ref)
+        if ref_path.is_absolute():
+            fail(f"{display_path(path, project_root)} {field} must use project-relative paths: {ref}", errors)
+            continue
+        if ".." in ref_path.parts:
+            fail(f"{display_path(path, project_root)} {field} must not escape project root: {ref}", errors)
+            continue
+        normalized_ref = ref_path.as_posix()
+        if allowed_prefixes and not any(
+            normalized_ref == prefix.rstrip("/") or normalized_ref.startswith(prefix) for prefix in allowed_prefixes
+        ):
+            fail(f"{display_path(path, project_root)} {field} has invalid reference location: {ref}", errors)
+            continue
+        target = (project_root / ref_path).resolve()
+        try:
+            target.relative_to(root)
+        except ValueError:
+            fail(f"{display_path(path, project_root)} {field} must stay within project root: {ref}", errors)
+            continue
+        if not target.is_file():
+            fail(f"{display_path(path, project_root)} {field} points to a missing file: {ref}", errors)
+
+
+def validate_flag(path: Path, field: str, value: str, errors: list[str], project_root: Optional[Path]) -> None:
+    if value not in FLAG_ALLOWED_VALUES:
+        fail(f"{display_path(path, project_root)} has invalid {field}: {value}", errors)
 
 
 def validate_project(project_root: Path) -> list[str]:
@@ -464,6 +759,23 @@ def validate_function(path: Path, project_root: Optional[Path] = None) -> list[s
             if value is not None and value.lower() == "none":
                 fail(f"{display_path(path, project_root)} has invalid {field}: none", errors)
 
+    research_needed = optional_markdown_value(path, "research_needed")
+    if research_needed is not None:
+        validate_flag(path, "research_needed", research_needed, errors, project_root)
+
+    experience_prompt_needed = optional_markdown_value(path, "experience_prompt_needed")
+    if experience_prompt_needed is not None:
+        validate_flag(path, "experience_prompt_needed", experience_prompt_needed, errors, project_root)
+        if experience_prompt_needed == "yes" and mode not in {"external_ui_package", "hybrid"}:
+            fail(
+                f"{display_path(path, project_root)} cannot require an experience prompt when experience_delivery_mode is {mode}",
+                errors,
+            )
+
+    research_questions = optional_markdown_value(path, "research_questions")
+    if research_needed == "yes" and research_questions is None:
+        fail(f"{display_path(path, project_root)} missing field: research_questions", errors)
+
     return errors
 
 
@@ -485,6 +797,223 @@ def validate_mission(path: Path, project_root: Optional[Path] = None) -> list[st
         ready_check = find_markdown_value(path, "input_ready_check", errors, project_root)
         if ready_check is not None and ready_check.lower() == "none":
             fail(f"{display_path(path, project_root)} has invalid input_ready_check: none", errors)
+
+    research_inputs = optional_markdown_value(path, "research_inputs")
+    if research_inputs is not None and research_inputs.lower() != "none":
+        validate_relative_file_refs(
+            path,
+            "research_inputs",
+            research_inputs,
+            errors,
+            project_root,
+            allowed_prefixes=("research/",),
+        )
+
+    external_tool_prompt_ref = optional_markdown_value(path, "external_tool_prompt_ref")
+    if external_tool_prompt_ref is not None and external_tool_prompt_ref.lower() != "none":
+        refs = parse_reference_list(external_tool_prompt_ref)
+        if len(refs) != 1:
+            fail(
+                f"{display_path(path, project_root)} external_tool_prompt_ref must contain exactly one project-relative file reference",
+                errors,
+            )
+        validate_relative_file_refs(
+            path,
+            "external_tool_prompt_ref",
+            external_tool_prompt_ref,
+            errors,
+            project_root,
+            allowed_prefixes=("experience_prompts/",),
+        )
+
+    return errors
+
+
+def validate_research_note(path: Path, project_root: Optional[Path] = None) -> list[str]:
+    errors: list[str] = []
+    if not path.is_file():
+        fail(f"missing research note file: {path}", errors)
+        return errors
+
+    require_headings(path, RESEARCH_REQUIRED_HEADINGS, errors, project_root)
+    require_markdown_fields(path, RESEARCH_CORE_FIELDS, errors, project_root)
+
+    trigger_type = find_markdown_value(path, "trigger_type", errors, project_root)
+    if trigger_type is not None and trigger_type not in RESEARCH_ALLOWED_TRIGGER:
+        fail(f"{display_path(path, project_root)} has invalid trigger_type: {trigger_type}", errors)
+
+    approval_required = find_markdown_value(path, "user_approval_required", errors, project_root)
+    if approval_required is not None and approval_required not in RESEARCH_ALLOWED_APPROVAL_REQUIRED:
+        fail(f"{display_path(path, project_root)} has invalid user_approval_required: {approval_required}", errors)
+
+    approval_status = find_markdown_value(path, "user_approval_status", errors, project_root)
+    if approval_status is not None and approval_status not in RESEARCH_ALLOWED_APPROVAL_STATUS:
+        fail(f"{display_path(path, project_root)} has invalid user_approval_status: {approval_status}", errors)
+
+    if trigger_type == "system_triggered":
+        if approval_required != "yes":
+            fail(
+                f"{display_path(path, project_root)} system_triggered research must set user_approval_required to yes",
+                errors,
+            )
+        if approval_status != "approved":
+            fail(
+                f"{display_path(path, project_root)} system_triggered research must record user_approval_status as approved",
+                errors,
+            )
+
+    if trigger_type == "user_triggered":
+        if approval_required != "no":
+            fail(
+                f"{display_path(path, project_root)} user_triggered research must set user_approval_required to no",
+                errors,
+            )
+        if approval_status != "not_required":
+            fail(
+                f"{display_path(path, project_root)} user_triggered research must record user_approval_status as not_required",
+                errors,
+            )
+
+    return errors
+
+
+def validate_experience_prompt(path: Path, project_root: Optional[Path] = None) -> list[str]:
+    errors: list[str] = []
+    if not path.is_file():
+        fail(f"missing experience prompt file: {path}", errors)
+        return errors
+
+    require_headings(path, EXPERIENCE_PROMPT_REQUIRED_HEADINGS, errors, project_root)
+    require_markdown_fields(path, EXPERIENCE_PROMPT_CORE_FIELDS, errors, project_root)
+
+    target_tool = find_markdown_value(path, "target_tool", errors, project_root)
+    if target_tool is not None and target_tool not in EXPERIENCE_PROMPT_ALLOWED_TOOL:
+        fail(f"{display_path(path, project_root)} has invalid target_tool: {target_tool}", errors)
+
+    status = find_markdown_value(path, "status", errors, project_root)
+    if status is not None and status not in EXPERIENCE_PROMPT_ALLOWED_STATUS:
+        fail(f"{display_path(path, project_root)} has invalid status: {status}", errors)
+
+    prompt_goal_type = find_markdown_value(path, "prompt_goal_type", errors, project_root)
+    if prompt_goal_type is not None and prompt_goal_type not in EXPERIENCE_PROMPT_ALLOWED_GOAL:
+        fail(f"{display_path(path, project_root)} has invalid prompt_goal_type: {prompt_goal_type}", errors)
+
+    consistency_mode = find_markdown_value(path, "consistency_mode", errors, project_root)
+    if consistency_mode is not None and consistency_mode not in EXPERIENCE_PROMPT_ALLOWED_CONSISTENCY:
+        fail(f"{display_path(path, project_root)} has invalid consistency_mode: {consistency_mode}", errors)
+
+    tool_guidance_profile = find_markdown_value(path, "tool_guidance_profile", errors, project_root)
+    if tool_guidance_profile is not None and tool_guidance_profile not in EXPERIENCE_PROMPT_ALLOWED_PROFILE:
+        fail(f"{display_path(path, project_root)} has invalid tool_guidance_profile: {tool_guidance_profile}", errors)
+
+    source_artifacts = find_markdown_value(path, "source_artifacts", errors, project_root)
+    if source_artifacts is not None:
+        validate_relative_file_refs(path, "source_artifacts", source_artifacts, errors, project_root)
+
+    adopted_reference_refs = find_markdown_value(path, "adopted_reference_refs", errors, project_root)
+    if adopted_reference_refs is not None and adopted_reference_refs.lower() != "none":
+        validate_relative_file_refs(path, "adopted_reference_refs", adopted_reference_refs, errors, project_root)
+
+    family_source_refs = find_markdown_value(path, "family_source_refs", errors, project_root)
+    if family_source_refs is not None and family_source_refs.lower() != "none":
+        validate_relative_file_refs(path, "family_source_refs", family_source_refs, errors, project_root)
+
+    page_family_id = find_markdown_value(path, "page_family_id", errors, project_root)
+    normalized_page_family_id = page_family_id.lower() if page_family_id is not None else None
+    normalized_family_source_refs = family_source_refs.lower() if family_source_refs is not None else None
+
+    if prompt_goal_type == "independent_screen":
+        if consistency_mode is not None and consistency_mode != "not_applicable":
+            fail(
+                f"{display_path(path, project_root)} independent_screen prompt must set consistency_mode to not_applicable",
+                errors,
+            )
+        if normalized_page_family_id != "not_applicable":
+            fail(
+                f"{display_path(path, project_root)} independent_screen prompt must set page_family_id to not_applicable",
+                errors,
+            )
+        if normalized_family_source_refs != "none":
+            fail(
+                f"{display_path(path, project_root)} independent_screen prompt must set family_source_refs to none",
+                errors,
+            )
+
+    if target_tool == "stitch" and tool_guidance_profile not in {"stitch_first_pass", "stitch_iterative_refine"}:
+        fail(
+            f"{display_path(path, project_root)} stitch prompt must use a stitch-specific tool_guidance_profile",
+            errors,
+        )
+
+    if target_tool == "figma" and tool_guidance_profile != "figma_structured_handoff":
+        fail(
+            f"{display_path(path, project_root)} figma prompt must use tool_guidance_profile figma_structured_handoff",
+            errors,
+        )
+
+    if target_tool == "other" and tool_guidance_profile == "figma_structured_handoff":
+        fail(
+            f"{display_path(path, project_root)} non-figma prompt cannot use figma_structured_handoff",
+            errors,
+        )
+
+    if prompt_goal_type in {"canonical_shell", "state_variant", "family_extension"}:
+        if normalized_page_family_id in {None, "", "none", "not_applicable"}:
+            fail(
+                f"{display_path(path, project_root)} {prompt_goal_type} prompt must set a real page_family_id",
+                errors,
+            )
+
+    if prompt_goal_type == "canonical_shell" and consistency_mode == "not_applicable":
+        fail(
+            f"{display_path(path, project_root)} canonical_shell prompt must declare a same-family consistency mode",
+            errors,
+        )
+
+    if prompt_goal_type in {"state_variant", "family_extension"}:
+        if consistency_mode == "not_applicable":
+            fail(
+                f"{display_path(path, project_root)} {prompt_goal_type} prompt must declare a same-family consistency mode",
+                errors,
+            )
+        if normalized_family_source_refs in {None, "none"}:
+            fail(
+                f"{display_path(path, project_root)} {prompt_goal_type} prompt must reference family_source_refs",
+                errors,
+            )
+
+    require_section_body(path, "## Copy-Paste Prompt", errors, project_root)
+
+    return errors
+
+
+def validate_project_artifacts(project_root: Path) -> list[str]:
+    errors: list[str] = []
+
+    function_dir = project_root / "function_blocks"
+    if function_dir.is_dir():
+        for function_path in sorted(function_dir.glob("*.md")):
+            errors.extend(validate_function(function_path, project_root))
+
+    mission_dir = project_root / "missions"
+    if mission_dir.is_dir():
+        for mission_path in sorted(mission_dir.glob("*.md")):
+            errors.extend(validate_mission(mission_path, project_root))
+
+    review_dir = project_root / "reviews"
+    if review_dir.is_dir():
+        for review_path in sorted(review_dir.glob("*.json")):
+            errors.extend(validate_quality_report(review_path, project_root))
+
+    research_dir = project_root / "research"
+    if research_dir.is_dir():
+        for research_path in sorted(research_dir.glob("*.md")):
+            errors.extend(validate_research_note(research_path, project_root))
+
+    experience_prompt_dir = project_root / "experience_prompts"
+    if experience_prompt_dir.is_dir():
+        for prompt_path in sorted(experience_prompt_dir.glob("*.md")):
+            errors.extend(validate_experience_prompt(prompt_path, project_root))
 
     return errors
 
@@ -625,6 +1154,12 @@ def main() -> int:
     mission_parser = subparsers.add_parser("check-mission", help="Validate one mission block.")
     mission_parser.add_argument("path", help="Path to the mission block Markdown file.")
 
+    research_parser = subparsers.add_parser("check-research-note", help="Validate one research note Markdown file.")
+    research_parser.add_argument("path", help="Path to the research note Markdown file.")
+
+    prompt_parser = subparsers.add_parser("check-experience-prompt", help="Validate one experience prompt Markdown file.")
+    prompt_parser.add_argument("path", help="Path to the experience prompt Markdown file.")
+
     quality_parser = subparsers.add_parser("check-quality-report", help="Validate one quality report JSON file.")
     quality_parser.add_argument("path", help="Path to the quality report JSON file.")
 
@@ -641,7 +1176,9 @@ def main() -> int:
 
     if args.command == "check-project":
         project_root = resolve_path(args.project_root)
-        return print_result(validate_project(project_root), f"project {project_root}")
+        errors = validate_project(project_root)
+        errors.extend(validate_project_artifacts(project_root))
+        return print_result(errors, f"project {project_root}")
 
     if args.command == "check-preflight":
         project_root = resolve_path(args.project_root)
@@ -655,6 +1192,14 @@ def main() -> int:
         path = resolve_path(args.path)
         return print_result(validate_mission(path, path.parent.parent), f"mission {path}")
 
+    if args.command == "check-research-note":
+        path = resolve_path(args.path)
+        return print_result(validate_research_note(path, path.parent.parent), f"research note {path}")
+
+    if args.command == "check-experience-prompt":
+        path = resolve_path(args.path)
+        return print_result(validate_experience_prompt(path, path.parent.parent), f"experience prompt {path}")
+
     if args.command in {"check-quality-report", "check-review"}:
         path = resolve_path(args.path)
         return print_result(validate_quality_report(path, path.parent.parent), f"quality report {path}")
@@ -665,18 +1210,7 @@ def main() -> int:
         if args.project_root:
             project_root = resolve_path(args.project_root)
             errors.extend(validate_project(project_root))
-            function_dir = project_root / "function_blocks"
-            if function_dir.is_dir():
-                for function_path in sorted(function_dir.glob("*.md")):
-                    errors.extend(validate_function(function_path, project_root))
-            mission_dir = project_root / "missions"
-            if mission_dir.is_dir():
-                for mission_path in sorted(mission_dir.glob("*.md")):
-                    errors.extend(validate_mission(mission_path, project_root))
-            review_dir = project_root / "reviews"
-            if review_dir.is_dir():
-                for review_path in sorted(review_dir.glob("*.json")):
-                    errors.extend(validate_quality_report(review_path, project_root))
+            errors.extend(validate_project_artifacts(project_root))
             label = f"protocol repository and project {project_root}"
         return print_result(errors, label)
 

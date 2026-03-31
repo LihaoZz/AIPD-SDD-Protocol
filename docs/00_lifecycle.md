@@ -90,6 +90,104 @@ If the mode is `external_ui_package` or `hybrid`, the parent `FB` must also reco
 
 Any dependent `MB` must remain inactive until those required inputs exist and are readable.
 
+## Research Rule
+
+`Research` is a support capability, not a new scene, role, or stage.
+
+Use it mainly in:
+
+- `Spec Architect` work during `DISCOVERY`, `SPEC`, or `FB_DETAILING`
+- `Builder` work inside the active `MB`
+
+Two trigger types are allowed:
+
+- `user_triggered`: the user explicitly asks for search or lookup work
+- `system_triggered`: the active role sees a material need for external facts, tools, references, or technical solutions
+
+Execution rule:
+
+- `user_triggered` research may run immediately
+- `system_triggered` research requires user approval before any search begins
+- do not perform silent network research
+
+Accepted uses include:
+
+- simple market scan or similar-product review during spec work
+- searching for mature tools, libraries, services, or open-source projects
+- checking official docs, issues, changelogs, or workarounds for a bounded technical problem
+- gathering UI references, component directions, rendering approaches, or style precedents
+
+Every research run must be captured in artifacts instead of living only in chat.
+
+At minimum, record:
+
+- `query`
+- `trigger_type`
+- `why_now`
+- `sources`
+- `facts`
+- `candidates`
+- `recommendation`
+- `impact_on_fb_or_mb`
+
+Write those results into one or more of:
+
+- `DECISIONS.md`
+- the active `FB`
+- the active `MB`
+- a `RESEARCH_NOTE`
+
+## External Tool Prompt And Intake Rule
+
+When the experience layer is externally delivered, follow this order:
+
+1. gather references or research when needed
+2. discuss and resolve the key UI decisions that determine the outcome
+3. let the user confirm the adopted references, final visual direction, design core, and major UI decisions
+4. generate and persist the external-tool prompt in `experience_prompts/*.md`
+5. include a copy-paste-ready final prompt inside that artifact
+6. hand off through that prompt artifact and let the user confirm the returned external result
+7. treat the approved result as `input_artifacts` for later `MB`s
+
+UI-related research may propose references and recommendations, but it may not finalize visual direction.
+
+Prompt requirements are context-relative rather than globally identical.
+
+Do not generate an external-tool prompt for UI work until the user confirms:
+
+- which references are adopted
+- the final visual direction
+- the design core
+- the intended information density
+- the layout direction
+- the component style direction
+- the color and typography direction
+- the interaction and motion direction when relevant
+- the responsive or platform priority
+- the accessibility constraints
+- the references or patterns that should be avoided
+
+If the prompt is for a shared page family, the user and assistant must also align on:
+
+- the `page_family_id`
+- the shared shell scope
+- what must be preserved across states or later `MB`s
+- what variation is allowed
+- what drift is explicitly forbidden
+- which prior approved prompts or artifacts define the family contract
+
+For Stitch handoff, prefer plain-language, screen-focused prompts. For a new family, establish the canonical shell first; for later work, refine the family screen by screen with tightly scoped edits instead of mixing many structural changes into one prompt.
+
+Do not leave the final external-tool prompt only in chat. Persist it as an artifact so downstream `MB`s and reviews can read the same handoff contract, and include the full copy-paste-ready prompt body inside that artifact.
+
+The default mode is manual handoff:
+
+- the assistant prepares research and prompt inputs
+- the user runs the external tool and approves the result
+- the approved output returns as `input_artifacts`
+
+If a future connected tool mode exists and the user grants permission, direct tool operation is allowed, but the approved output still remains an input artifact under `FB` and `MB` authority.
+
 ## Discovery Exit Rule
 
 When a scene path includes `DISCOVERY`, it ends only when the protocol can write four lists:
@@ -282,6 +380,91 @@ See `README.md` and `docs/06_session_bootstrap.md`.
 - Builder 被允许的集成范围
 
 所有依赖这些输入的 `MB`，在输入未就绪前不得激活。
+
+### Research 规则
+
+`Research` 是受控辅助能力，不是新的场景、角色或阶段。
+
+它主要发生在：
+
+- `Spec Architect` 的 `DISCOVERY`、`SPEC`、`FB_DETAILING`
+- `Builder` 当前激活 `MB` 的执行过程中
+
+允许两种触发类型：
+
+- `user_triggered`：用户明确要求进行搜索或检索
+- `system_triggered`：当前角色判断需要外部事实、工具、参考或技术解法
+
+执行规则：
+
+- `user_triggered` research 可以直接执行
+- `system_triggered` research 在任何搜索开始前都必须先得到用户同意
+- 不允许静默联网 research
+
+适用场景包括：
+
+- 规格阶段的简易市场研究或相似产品查看
+- 搜索成熟工具、库、服务或开源项目
+- 为当前有边界技术问题查官方文档、issue、changelog 或 workaround
+- 搜索 UI 参考、组件方向、渲染方案或风格先例
+
+每次 research 都必须沉淀进工件，不能只停留在聊天里。
+
+最少记录：
+
+- `query`
+- `trigger_type`
+- `why_now`
+- `sources`
+- `facts`
+- `candidates`
+- `recommendation`
+- `impact_on_fb_or_mb`
+
+这些结果必须写入以下一种或多种工件：
+
+- `DECISIONS.md`
+- 当前激活的 `FB`
+- 当前激活的 `MB`
+- `RESEARCH_NOTE`
+
+### 外部工具 Prompt 与回流规则
+
+当体验层由外部交付时，顺序固定为：
+
+1. 先在需要时收集参考或做 research
+2. 先把决定结果的关键 UI 细节讨论清楚
+3. 由用户确认采纳的参考、最终视觉方向、设计核心，以及主要 UI 决策
+4. 把基于确认方向生成的外部工具 prompt 固化到 `experience_prompts/*.md`
+5. 在该工件中写入可直接复制给外部工具的完整提示词
+6. 通过这个 prompt 工件完成交接，并由用户确认外部工具返回结果
+7. 把批准结果作为后续 `MB` 的 `input_artifacts`
+
+UI 相关 research 只能提供参考和建议，不能直接定视觉方向。
+
+在生成任何 UI 外部工具 prompt 前，必须先由用户确认：
+
+- 哪些参考被采纳
+- 最终视觉方向是什么
+- 设计核心是什么
+- 信息密度
+- 布局方向
+- 组件风格方向
+- 颜色和排版方向
+- 交互与动效方向（相关时）
+- 响应式或平台优先级
+- 可访问性约束
+- 明确不采用的参考或模式
+
+最终外部工具 prompt 不能只停留在聊天里，必须固化为工件，并在工件中保留一份可直接复制使用的完整提示词，供后续 `MB` 和 review 读取同一份交接契约。
+
+默认模式是手动交接：
+
+- assistant 负责准备 research 和 prompt 输入
+- 用户执行外部工具并确认结果
+- 批准输出再作为 `input_artifacts` 回流
+
+如果未来存在可连接工具模式，且用户明确授权，允许直接操作工具；但即使如此，回流产物仍然只是受 `FB` 与 `MB` 约束的输入工件。
 
 ### Discovery 退出规则
 

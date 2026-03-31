@@ -64,6 +64,8 @@ This separation makes it easier to reuse the protocol across different products.
 ├── QUALITY_RULEBOOK.md
 ├── QUALITY_MEMORY.md
 ├── SESSION_STATE.md
+├── research/
+├── experience_prompts/
 ├── function_blocks/
 ├── missions/
 └── reviews/

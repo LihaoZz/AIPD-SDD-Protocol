@@ -43,6 +43,8 @@ Follow the exact scene path from `docs/00_lifecycle.md`.
 
 Use this document only to choose what to read first.
 
+If the active role sees a need for research, follow `Research Rule` in `docs/00_lifecycle.md` instead of searching by default.
+
 ### `greenfield`
 
 Read after the global bootstrap files:
@@ -58,6 +60,7 @@ First role:
 First action:
 
 - ask business questions until the 8 ontology elements and affected layers can be written
+- if external facts or tool discovery would materially help, request user approval before any system-triggered research
 
 Do not:
 
@@ -89,6 +92,7 @@ First role:
 First action:
 
 - identify what the feature changes, what current assumption it may break, and what FB detail must exist before coding
+- if market scan, similar-product review, or tool discovery would materially help, request user approval before any system-triggered research
 
 Do not:
 
@@ -115,6 +119,7 @@ First role:
 First action:
 
 - name the current stage and the next single action
+- if a bounded technical gap needs external facts, request user approval before any system-triggered research
 
 Do not:
 
@@ -257,6 +262,8 @@ If access is missing, the user must provide access by:
 
 这个文档只负责告诉你先读什么。
 
+如果当前角色判断需要 research，先按 `docs/00_lifecycle.md` 的 `Research Rule` 执行，不要默认直接搜索。
+
 #### `greenfield`
 
 补充读取：
@@ -272,6 +279,7 @@ If access is missing, the user must provide access by:
 第一步动作：
 
 - 用业务问题把 8 个本体元素和受影响层问清楚
+- 如果外部事实或工具检索会实质帮助推进，先征得用户同意，再执行 system-triggered research
 
 不要：
 
@@ -303,6 +311,7 @@ If access is missing, the user must provide access by:
 第一步动作：
 
 - 识别新功能会改变什么、可能打破什么假设、编码前必须补齐哪些 FB 细节
+- 如果市场扫描、相似产品查看或工具检索会实质帮助推进，先征得用户同意，再执行 system-triggered research
 
 不要：
 
@@ -329,6 +338,7 @@ If access is missing, the user must provide access by:
 第一步动作：
 
 - 说清当前阶段和下一个唯一动作
+- 如果某个有边界技术缺口需要外部事实，先征得用户同意，再执行 system-triggered research
 
 不要：
 

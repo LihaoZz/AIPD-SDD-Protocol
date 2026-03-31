@@ -11,6 +11,8 @@ The reviewer should verify:
 - FB impact map coverage alignment
 - active MB inheritance-slice compliance
 - mission block scope compliance
+- required research artifacts when the active `MB` adopts external facts
+- required external prompt artifacts when the active `MB` depends on handoff context
 - external UI package alignment when the parent FB does not use Builder-owned experience delivery
 - required quality checks
 - data or API contract drift
@@ -119,6 +121,8 @@ Run recovery in this order:
 
 If the failure is caused by a missing external UI package, do not let the Builder compensate by inventing a replacement design. Record the missing input, route the handoff correctly, and keep the next action explicit.
 
+If the failure is caused by a missing research note or missing experience prompt artifact that the active `MB` depends on, route it as missing execution context instead of letting the Builder infer the missing contract from chat history.
+
 ---
 
 ## Three-Strike Rule
@@ -147,6 +151,8 @@ Reviewer 应该核查：
 - 是否覆盖了父 FB 声明受影响的工程层
 - 是否遵守当前 MB 声明的继承切片
 - 是否遵守 mission block 的范围
+- 当当前 `MB` 采纳了外部事实时，所需 research 工件是否存在
+- 当当前 `MB` 依赖交接上下文时，所需 external prompt 工件是否存在
 - 当父 FB 的体验层不是由 Builder 直接交付时，是否正确对齐外部 UI 包
 - 是否完成必需的质量检查
 - 是否出现数据或 API 契约漂移
@@ -216,6 +222,8 @@ Reviewer 不得用模糊的“退回上一步”来描述问题。
 6. 在开始新的实现前先更新 `SESSION_STATE.md`
 
 如果失败是由缺失的外部 UI 包导致的，不要让 Builder 靠临场设计去补位。应把缺失输入记录清楚、把 handoff 路由给正确责任方，并把下一步动作写明确。
+
+如果失败是由当前 `MB` 依赖的 research note 或 experience prompt 工件缺失导致的，也不要让 Builder 靠聊天记忆去补契约。应把它视为缺失执行上下文并正确路由。
 
 ### 三振规则
 
