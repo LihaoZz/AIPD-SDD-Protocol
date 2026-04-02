@@ -11,6 +11,7 @@ For every scene, read these first:
 - `README.md`
 - `docs/00_lifecycle.md`
 - `docs/05_operating_playbook.md`
+- `HARNESS.md` when the active `MB` is expected to run through the harness loop
 
 These files define:
 
@@ -18,6 +19,7 @@ These files define:
 - what the lifecycle authority is
 - how to run preflight
 - how to operate the current scene safely
+- how runtime naming, retry feedback, and machine state work when harness execution is enabled
 
 ## Preflight Summary Structure
 
@@ -105,6 +107,7 @@ Read after the global bootstrap files:
 - `<PROJECT_ROOT>/SESSION_STATE.md`
 - current function block
 - current mission block
+- current mission machine spec when it exists
 - required input artifacts when the current FB or MB depends on them
 
 Also read when needed:
@@ -119,6 +122,7 @@ First role:
 First action:
 
 - name the current stage and the next single action
+- if harness execution is used, run `preflight.py --level mb` before invoking the Builder loop
 - if a bounded technical gap needs external facts, request user approval before any system-triggered research
 
 Do not:
@@ -231,12 +235,14 @@ If access is missing, the user must provide access by:
 - `README.md`
 - `docs/00_lifecycle.md`
 - `docs/05_operating_playbook.md`
+- 当前 `MB` 需要进入 harness 闭环时，再额外读取 `HARNESS.md`
 
 它们分别负责：
 
 - 解释协议是什么
 - 定义唯一流程真源
 - 给出实操建议
+- 在启用 harness 时解释 runtime 命名、retry feedback 和 machine state 规则
 
 ### Preflight Summary 结构
 
@@ -324,6 +330,7 @@ If access is missing, the user must provide access by:
 - `<PROJECT_ROOT>/SESSION_STATE.md`
 - 当前 function block
 - 当前 mission block
+- 当前 machine sidecar（如果存在）
 - 当前依赖的输入工件
 
 必要时再读：
@@ -338,6 +345,7 @@ If access is missing, the user must provide access by:
 第一步动作：
 
 - 说清当前阶段和下一个唯一动作
+- 如果当前 `MB` 会进入 harness 执行，先跑 `preflight.py --level mb`
 - 如果某个有边界技术缺口需要外部事实，先征得用户同意，再执行 system-triggered research
 
 不要：

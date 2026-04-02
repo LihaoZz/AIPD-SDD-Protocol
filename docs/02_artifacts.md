@@ -19,6 +19,12 @@ Each project should maintain the following files.
 | `<PROJECT_ROOT>/experience_prompts/*.md` | Approved external-tool handoff prompts with confirmed visual direction and return contract | Spec Architect or Builder | Optional when external UI prompt handoff is used |
 | `<PROJECT_ROOT>/function_blocks/*.md` | Product-level delivery units with ontology frame, impact map, acceptance, and MB plan | Spec Architect | Yes before scene planning finishes |
 | `<PROJECT_ROOT>/missions/*.md` | Bounded code change units under one active FB | Spec Architect or Builder | Yes before `BUILD` |
+| `<PROJECT_ROOT>/missions/*.machine.json` | Machine-readable mission sidecars used by harness validation and execution | Spec Architect or Builder | Yes for runnable `MB`s |
+| `<PROJECT_ROOT>/runtime/state/*.state.json` | Machine-readable current execution state for one `MB` | Harness runtime | Yes when harness is used |
+| `<PROJECT_ROOT>/runtime/attempts/**` | Per-attempt prompts, raw outputs, diffs, scope checks, and verification reports | Harness runtime | Yes when harness is used |
+| `<PROJECT_ROOT>/runtime/memory/project_memory.json` | Cross-session validated knowledge from completed work | Harness runtime | Recommended when harness is used |
+| `<PROJECT_ROOT>/runtime/memory/failure_log.json` | Cross-attempt failure patterns and rejected fixes | Harness runtime | Recommended when harness is used |
+| `<PROJECT_ROOT>/runtime/preflight/*.json` | Session and MB preflight results | Harness runtime | Yes when harness is used |
 | `<PROJECT_ROOT>/reviews/*.json` | Evidence-based quality reports that match the quality report schema | Reviewer | Yes before `CLOSE` |
 
 ## Ownership Rule
@@ -80,7 +86,11 @@ Function blocks should live in `<PROJECT_ROOT>/function_blocks/`.
 
 Mission blocks should live in `<PROJECT_ROOT>/missions/`.
 
+Machine sidecars should live next to their mission markdown files as `<PROJECT_ROOT>/missions/<mb_id>.machine.json`.
+
 Quality reports should live in `<PROJECT_ROOT>/reviews/`.
+
+Harness runtime artifacts should live under `<PROJECT_ROOT>/runtime/`.
 
 Each mission block should inherit from its parent FB instead of copying the full ontology frame.
 
@@ -161,6 +171,13 @@ Optional Appendix additions:
 
 - `research_inputs`
 - `external_tool_prompt_ref`
+
+Harness rule:
+
+- each runnable `MB` should declare one machine sidecar reference in its markdown body
+- the full verification evidence for one attempt belongs in `<PROJECT_ROOT>/runtime/attempts/<mb_id>/<attempt_id>/verification_report.json`
+- the retry prompt summary derived from that report is not a separate truth file
+- the current machine state should store `last_verification_report_path` instead of inventing alternate names
 
 Reference rule:
 

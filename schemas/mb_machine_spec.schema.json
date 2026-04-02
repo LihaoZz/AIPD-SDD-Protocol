@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/mb_machine_spec.schema.json",
+  "title": "SDD MB Machine Spec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mb_id",
+    "parent_fb_id",
+    "goal",
+    "context_files",
+    "input_artifacts",
+    "allowed_touch",
+    "forbidden_touch",
+    "acceptance",
+    "retry_policy",
+    "prompt_feedback",
+    "issue_owner_map"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "mb_id": {
+      "type": "string",
+      "pattern": "^fb[0-9]+-mb[0-9]+$"
+    },
+    "parent_fb_id": {
+      "type": "string",
+      "pattern": "^fb[0-9]+$"
+    },
+    "goal": {
+      "type": "string",
+      "minLength": 1
+    },
+    "context_files": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "input_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "allowed_touch": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "forbidden_touch": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "acceptance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/command_check"
+          },
+          {
+            "$ref": "#/$defs/file_exists_check"
+          },
+          {
+            "$ref": "#/$defs/json_field_check"
+          },
+          {
+            "$ref": "#/$defs/no_out_of_scope_changes_check"
+          }
+        ]
+      }
+    },
+    "retry_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_retries",
+        "on_retry_limit"
+      ],
+      "properties": {
+        "max_retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "on_retry_limit": {
+          "type": "string",
+          "enum": [
+            "route_to_recovery",
+            "stop"
+          ]
+        }
+      }
+    },
+    "prompt_feedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "include_last_verification_digest",
+        "include_last_failure_reason",
+        "include_retry_count"
+      ],
+      "properties": {
+        "include_last_verification_digest": {
+          "type": "boolean"
+        },
+        "include_last_failure_reason": {
+          "type": "boolean"
+        },
+        "include_retry_count": {
+          "type": "boolean"
+        }
+      }
+    },
+    "issue_owner_map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spec_gap",
+        "implementation_bug",
+        "quality_evidence_gap",
+        "state_drift",
+        "environment_issue",
+        "review_context_gap"
+      ],
+      "properties": {
+        "spec_gap": {
+          "$ref": "#/$defs/owner"
+        },
+        "implementation_bug": {
+          "$ref": "#/$defs/owner"
+        },
+        "quality_evidence_gap": {
+          "$ref": "#/$defs/owner"
+        },
+        "state_drift": {
+          "$ref": "#/$defs/owner"
+        },
+        "environment_issue": {
+          "$ref": "#/$defs/owner"
+        },
+        "review_context_gap": {
+          "$ref": "#/$defs/owner"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "owner": {
+      "type": "string",
+      "enum": [
+        "spec_architect",
+        "builder",
+        "recovery_coordinator",
+        "current_scene_lead"
+      ]
+    },
+    "base_check": {
+      "type": "object",
+      "required": [
+        "check_id",
+        "type"
+      ],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "command_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "type",
+        "command"
+      ],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "const": "command"
+        },
+        "description": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "file_exists_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "type",
+        "path"
+      ],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "const": "file_exists"
+        },
+        "description": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "json_field_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "type",
+        "path",
+        "json_pointer",
+        "expected"
+      ],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "const": "json_field"
+        },
+        "description": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "json_pointer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected": {}
+      }
+    },
+    "no_out_of_scope_changes_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "type"
+      ],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "const": "no_out_of_scope_changes"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "mb_id": "fb1-mb1",
+  "parent_fb_id": "fb1",
+  "goal": "Make src/app.py contain PASS_ONE",
+  "context_files": [
+    "src/app.py"
+  ],
+  "input_artifacts": [],
+  "allowed_touch": [
+    "src/app.py"
+  ],
+  "forbidden_touch": [],
+  "acceptance": [
+    {
+      "check_id": "contains_pass_one",
+      "type": "command",
+      "command": "python3 -c \"from pathlib import Path; import sys; sys.exit(0 if 'PASS_ONE' in Path('src/app.py').read_text(encoding='utf-8') else 1)\""
+    },
+    {
+      "check_id": "scope_ok",
+      "type": "no_out_of_scope_changes"
+    }
+  ],
+  "retry_policy": {
+    "max_retries": 3,
+    "on_retry_limit": "route_to_recovery"
+  },
+  "prompt_feedback": {
+    "include_last_verification_digest": true,
+    "include_last_failure_reason": true,
+    "include_retry_count": true
+  },
+  "issue_owner_map": {
+    "spec_gap": "spec_architect",
+    "implementation_bug": "builder",
+    "quality_evidence_gap": "builder",
+    "state_drift": "recovery_coordinator",
+    "environment_issue": "recovery_coordinator",
+    "review_context_gap": "current_scene_lead"
+  }
+}

@@ -47,6 +47,10 @@
 - `outcome`:
 - `next_action`:
 
+## Machine Spec
+
+- `machine_spec_ref`:
+
 ## Optional Appendix
 
 - `hypothesis`:
@@ -76,6 +80,8 @@
 - If the parent `FB` uses `external_ui_package` or `hybrid`, this `MB` is an integration slice, not a visual redesign task.
 - `selected_quality_checks` must be chosen from `QUALITY_RULEBOOK.md`.
 - This `MB` is complete only when its required quality report exists and all required checks are evaluated.
+- Each runnable `MB` must have one machine sidecar with the same base id at `missions/<mb_id>.machine.json`.
+- `machine_spec_ref` should point to that sidecar using one relative path, or `none` only when the mission is explicitly non-runnable.
 - `Optional Appendix` may be omitted entirely when it adds no useful clarity.
 - Use `research_inputs` and `external_tool_prompt_ref` only when the active `MB` depends on research or an external-tool prompt artifact.
 - `research_inputs` should use comma-separated relative paths under `research/`, or `none`.
@@ -134,6 +140,10 @@
 - `outcome`：结果
 - `next_action`：下一步动作
 
+#### 机器规格
+
+- `machine_spec_ref`：当前 MB 对应的 machine sidecar 路径
+
 #### 可选附录
 
 - `hypothesis`：本次改动假设
@@ -163,6 +173,8 @@
 - 如果父 `FB` 使用 `external_ui_package` 或 `hybrid`，这个 `MB` 是集成切片，不是视觉重设计任务。
 - `selected_quality_checks` 必须从 `QUALITY_RULEBOOK.md` 中选择。
 - 只有在所需质量报告存在且所有必需检查都已评估后，该 `MB` 才算完成。
+- 每个可执行的 `MB` 都必须在 `missions/` 目录下拥有同名 machine sidecar，例如 `fb1-mb1.machine.json`。
+- `machine_spec_ref` 应使用单个相对路径指向该 sidecar；只有明确不可运行的 mission 才能写 `none`。
 - `Optional Appendix` 在没有额外价值时可以整段省略。
 - 只有当前 `MB` 依赖 research 或外部工具 prompt 工件时，才填写 `research_inputs` 和 `external_tool_prompt_ref`。
 - `research_inputs` 应使用逗号分隔的相对路径，指向 `research/` 下的文件；没有时写 `none`。

@@ -14,6 +14,8 @@ It stores:
 - templates
 - validation tools
 
+Harness runtime outputs belong in the external `PROJECT_ROOT`, not in this repository.
+
 Real product state lives in the external `PROJECT_ROOT`.
 
 ## Core Idea
@@ -129,6 +131,7 @@ Global startup files:
 - `README.md`
 - [docs/00_lifecycle.md](docs/00_lifecycle.md)
 - [docs/06_session_bootstrap.md](docs/06_session_bootstrap.md)
+- [HARNESS.md](HARNESS.md) when one `MB` is expected to run through the harness loop
 
 Scene-specific priorities:
 

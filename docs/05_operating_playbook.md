@@ -230,6 +230,27 @@ Avoid:
 
 - continuing implementation by instinct
 
+## Harness Loop In Practice
+
+Use the harness when one active `MB` should run through a machine-controlled Builder loop.
+
+Operational order:
+
+1. run `preflight.py --level session` when entering or resuming a project
+2. run `preflight.py --level mb` before invoking the active `MB`
+3. read `<PROJECT_ROOT>/missions/<mb_id>.md` and `<PROJECT_ROOT>/missions/<mb_id>.machine.json`
+4. let `mb_runner.py` assemble the Builder prompt and invoke Codex CLI
+5. compare real workspace changes through `scope_guard.py`
+6. if scope fails, stop and route to recovery
+7. if scope passes, run `verifier.py`
+8. write runtime state and sync `SESSION_STATE.md`
+9. if verification fails and retry is still allowed, inject `last_verification_digest`, `last_failure_reason`, and `retry_count` into the next prompt
+10. if verification passes, close the `MB`; if retry limit is reached, route to recovery
+
+Do not treat `last_verification_digest` as a new truth artifact.
+
+It is a runner-generated retry summary derived from the latest `verification_report.json`.
+
 ## Local Validation
 
 Run the local guard script before claiming the repository is ready for handoff.
@@ -423,6 +444,25 @@ assistant 可以建议风格或工具，但最终 UI 定调权在用户手里。
 - `continue` 时从零重启
 - `review` 时顺手修代码
 - `recovery` 时凭直觉继续实现
+
+### Harness 闭环的实操规则
+
+当某个 `MB` 要进入 machine-controlled Builder loop 时，按下面顺序运行：
+
+1. 进入或恢复项目时先跑 `preflight.py --level session`
+2. 真正执行当前 `MB` 前再跑 `preflight.py --level mb`
+3. 读取 `<PROJECT_ROOT>/missions/<mb_id>.md` 和 `<PROJECT_ROOT>/missions/<mb_id>.machine.json`
+4. 让 `mb_runner.py` 组装 Builder prompt 并调用 Codex CLI
+5. 通过 `scope_guard.py` 比较真实工作区变化
+6. 如果 scope 失败，立即停止并路由 recovery
+7. 如果 scope 通过，再执行 `verifier.py`
+8. 把机器状态写回 runtime，并同步 `SESSION_STATE.md`
+9. 如果验证失败且仍允许重试，把 `last_verification_digest`、`last_failure_reason` 和 `retry_count` 注入下一轮 prompt
+10. 如果验证通过，就关闭当前 `MB`；如果达到重试上限，就路由 recovery
+
+不要把 `last_verification_digest` 当成新的真理源工件。
+
+它只是 `mb_runner` 从最新 `verification_report.json` 提炼出来的 retry 摘要。
 
 ### 本地校验
 

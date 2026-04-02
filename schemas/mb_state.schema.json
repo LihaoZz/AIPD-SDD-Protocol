@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/mb-state.schema.json",
+  "title": "SDD Harness MB State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mb_id",
+    "status",
+    "retry_count",
+    "last_attempt_id",
+    "last_verification_report_path",
+    "last_verification_digest",
+    "last_failure_reason",
+    "next_action",
+    "updated_at",
+    "timezone_name"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "mb_id": {
+      "type": "string",
+      "pattern": "^fb[0-9]+-mb[0-9]+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "running",
+        "verifying",
+        "passed",
+        "failed",
+        "blocked",
+        "routed_to_recovery"
+      ]
+    },
+    "retry_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "last_attempt_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_verification_report_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_verification_digest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_failure_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "updated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timezone_name": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

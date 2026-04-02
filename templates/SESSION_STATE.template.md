@@ -13,6 +13,9 @@
 - `completed`:
 - `failed`:
 - `blocked_by`:
+- `runtime_state_ref`:
+- `last_attempt_id`:
+- `last_verification_report_path`:
 
 ## Required Reads
 
@@ -48,6 +51,9 @@
 - `completed`：最近完成了什么
 - `failed`：最近失败了什么
 - `blocked_by`：当前阻塞项
+- `runtime_state_ref`：当前机器状态 JSON 的相对路径
+- `last_attempt_id`：最近一次尝试编号
+- `last_verification_report_path`：最近一次验证报告路径
 
 #### 必读文件
 

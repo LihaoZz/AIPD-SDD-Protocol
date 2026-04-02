@@ -68,6 +68,13 @@ This separation makes it easier to reuse the protocol across different products.
 ├── experience_prompts/
 ├── function_blocks/
 ├── missions/
+│   ├── fb1-mb1.md
+│   └── fb1-mb1.machine.json
+├── runtime/
+│   ├── attempts/
+│   ├── state/
+│   ├── memory/
+│   └── preflight/
 └── reviews/
 ```
 
@@ -87,6 +94,6 @@ This separation makes it easier to reuse the protocol across different products.
 不要把可复用的协议资产和项目专属状态混在一起。
 
 - 可复用规则放在 `docs/`、`prompts/`、`schemas/` 和 `templates/`
-- 某个真实项目的当前状态放在外部 `PROJECT_ROOT`
+- 某个真实项目的当前状态和 harness 运行产物放在外部 `PROJECT_ROOT`
 
 这样分层后，这套协议会更容易复用到不同产品中。
