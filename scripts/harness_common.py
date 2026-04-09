@@ -86,6 +86,18 @@ def function_block_path(project_root: Path, fb_id: str) -> Path:
     return project_root / "function_blocks" / f"{fb_id}.md"
 
 
+def quality_memory_path(project_root: Path) -> Path:
+    return project_root / "QUALITY_MEMORY.md"
+
+
+def evals_dir(project_root: Path) -> Path:
+    return project_root / "evals"
+
+
+def eval_asset_path(project_root: Path, raw_ref: str) -> Path:
+    return normalize_relpath(project_root, raw_ref)
+
+
 def runtime_dir(project_root: Path) -> Path:
     return project_root / "runtime"
 

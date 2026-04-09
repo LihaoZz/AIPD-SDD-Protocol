@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "mb_id": "fb1-mb5",
+  "mb_id": "fb1-mb7",
   "parent_fb_id": "fb1",
-  "goal": "Route explicit spec_gap without retry",
+  "goal": "Require human approval before execution",
   "context_files": [
     "src/app.py"
   ],
@@ -13,9 +13,9 @@
   "forbidden_touch": [],
   "acceptance": [
     {
-      "check_id": "contains_pass_five",
+      "check_id": "contains_pass_seven",
       "type": "command",
-      "command": "python3 -c \"from pathlib import Path; import sys; sys.exit(0 if 'PASS_FIVE' in Path('src/app.py').read_text(encoding='utf-8') else 1)\""
+      "command": "python3 -c \"from pathlib import Path; import sys; sys.exit(0 if 'PASS_SEVEN' in Path('src/app.py').read_text(encoding='utf-8') else 1)\""
     },
     {
       "check_id": "scope_ok",
@@ -24,7 +24,7 @@
   ],
   "eval_refs": [],
   "retry_policy": {
-    "max_retries": 3,
+    "max_retries": 2,
     "on_retry_limit": "route_to_recovery"
   },
   "memory_policy": {
@@ -32,7 +32,7 @@
     "inject_validated_patterns": true,
     "max_memory_items": 3
   },
-  "autonomy_level": "L2_auto_with_review",
+  "autonomy_level": "L1_human_approval",
   "prompt_feedback": {
     "include_last_verification_digest": true,
     "include_last_failure_reason": true,

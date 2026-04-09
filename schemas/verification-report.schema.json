@@ -10,7 +10,9 @@
     "attempt_id",
     "result",
     "summary",
-    "checks"
+    "checks",
+    "generated_at",
+    "timezone_name"
   ],
   "properties": {
     "schema_version": {
@@ -46,7 +48,9 @@
           "check_id",
           "type",
           "status",
-          "evidence"
+          "evidence",
+          "source_kind",
+          "source_ref"
         ],
         "properties": {
           "check_id": {
@@ -59,8 +63,20 @@
               "command",
               "file_exists",
               "json_field",
-              "no_out_of_scope_changes"
+              "no_out_of_scope_changes",
+              "api_scenario"
             ]
+          },
+          "source_kind": {
+            "type": "string",
+            "enum": [
+              "inline_acceptance",
+              "eval_asset"
+            ]
+          },
+          "source_ref": {
+            "type": "string",
+            "minLength": 1
           },
           "status": {
             "type": "string",
@@ -91,11 +107,40 @@
           "stderr": {
             "type": "string"
           },
+          "method": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "expected_status": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "response_status": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "response_body": {
+            "type": "string"
+          },
           "evidence": {
             "type": "string"
           }
         }
       }
+    },
+    "generated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timezone_name": {
+      "type": "string",
+      "minLength": 1
     }
   }
 }

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/hook-event.schema.json",
+  "title": "SDD Harness Hook Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "hook_name",
+    "status",
+    "summary",
+    "mb_id",
+    "attempt_id",
+    "generated_at",
+    "timezone_name",
+    "details"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "hook_name": {
+      "type": "string",
+      "enum": [
+        "pre_tool_hook",
+        "post_tool_hook",
+        "stop_hook"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "block"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mb_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "attempt_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "generated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timezone_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "details": {
+      "type": "object"
+    }
+  }
+}

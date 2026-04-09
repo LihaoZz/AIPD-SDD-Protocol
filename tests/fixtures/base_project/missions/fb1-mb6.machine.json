@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "mb_id": "fb1-mb5",
+  "mb_id": "fb1-mb6",
   "parent_fb_id": "fb1",
-  "goal": "Route explicit spec_gap without retry",
+  "goal": "Pass through a reusable eval asset and close automatically",
   "context_files": [
     "src/app.py"
   ],
@@ -13,18 +13,15 @@
   "forbidden_touch": [],
   "acceptance": [
     {
-      "check_id": "contains_pass_five",
-      "type": "command",
-      "command": "python3 -c \"from pathlib import Path; import sys; sys.exit(0 if 'PASS_FIVE' in Path('src/app.py').read_text(encoding='utf-8') else 1)\""
-    },
-    {
       "check_id": "scope_ok",
       "type": "no_out_of_scope_changes"
     }
   ],
-  "eval_refs": [],
+  "eval_refs": [
+    "evals/app_contains_pass_six.json"
+  ],
   "retry_policy": {
-    "max_retries": 3,
+    "max_retries": 2,
     "on_retry_limit": "route_to_recovery"
   },
   "memory_policy": {
@@ -32,7 +29,7 @@
     "inject_validated_patterns": true,
     "max_memory_items": 3
   },
-  "autonomy_level": "L2_auto_with_review",
+  "autonomy_level": "L3_full_auto",
   "prompt_feedback": {
     "include_last_verification_digest": true,
     "include_last_failure_reason": true,

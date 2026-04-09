@@ -240,12 +240,13 @@ Operational order:
 2. run `preflight.py --level mb` before invoking the active `MB`
 3. read `<PROJECT_ROOT>/missions/<mb_id>.md` and `<PROJECT_ROOT>/missions/<mb_id>.machine.json`
 4. let `mb_runner.py` assemble the Builder prompt and invoke Codex CLI
-5. compare real workspace changes through `scope_guard.py`
-6. if scope fails, stop and route to recovery
-7. if scope passes, run `verifier.py`
-8. write runtime state and sync `SESSION_STATE.md`
-9. if verification fails and retry is still allowed, inject `last_verification_digest`, `last_failure_reason`, and `retry_count` into the next prompt
-10. if verification passes, close the `MB`; if retry limit is reached, route to recovery
+5. run mandatory hook guards before and after Codex execution
+6. compare real workspace changes through `scope_guard.py`
+7. if scope fails, stop and route to recovery
+8. if scope passes, run `verifier.py` against inline acceptance plus any referenced eval assets
+9. write runtime state and sync `SESSION_STATE.md`
+10. if verification fails and retry is still allowed, inject `last_verification_digest`, `last_failure_reason`, `retry_count`, and relevant memory context into the next prompt
+11. if verification passes, follow the `autonomy_level`: hand off to review for `L1/L2`, or close automatically for `L3`; if retry limit is reached, route to recovery
 
 Do not treat `last_verification_digest` as a new truth artifact.
 

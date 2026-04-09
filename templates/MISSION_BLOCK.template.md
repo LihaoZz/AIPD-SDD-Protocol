@@ -50,6 +50,9 @@
 ## Machine Spec
 
 - `machine_spec_ref`:
+- `machine_spec_eval_refs`: none
+- `machine_spec_memory_policy`: default
+- `machine_spec_autonomy_level`: L2_auto_with_review
 
 ## Optional Appendix
 
@@ -84,6 +87,7 @@
 - Do not list `SESSION_STATE.md` in `required_artifact_updates` for a runnable `MB`; the harness runtime syncs session state automatically.
 - Each runnable `MB` must have one machine sidecar with the same base id at `missions/<mb_id>.machine.json`.
 - `machine_spec_ref` should point to that sidecar using one relative path, or `none` only when the mission is explicitly non-runnable.
+- The machine sidecar should declare reusable `eval_refs`, `memory_policy`, and `autonomy_level` when the harness loop depends on them.
 - `Optional Appendix` may be omitted entirely when it adds no useful clarity.
 - Use `research_inputs` and `external_tool_prompt_ref` only when the active `MB` depends on research or an external-tool prompt artifact.
 - `research_inputs` should use comma-separated relative paths under `research/`, or `none`.

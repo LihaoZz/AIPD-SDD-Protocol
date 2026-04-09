@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "eval_id": "app_contains_pass_six",
+  "description": "Reusable eval that checks PASS_SIX in src/app.py",
+  "tags": [
+    "fixture",
+    "application",
+    "command"
+  ],
+  "check": {
+    "check_id": "contains_pass_six",
+    "type": "command",
+    "command": "python3 -c \"from pathlib import Path; import sys; sys.exit(0 if 'PASS_SIX' in Path('src/app.py').read_text(encoding='utf-8') else 1)\""
+  }
+}

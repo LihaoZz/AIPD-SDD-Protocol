@@ -13,6 +13,9 @@
     "last_verification_report_path",
     "last_verification_digest",
     "last_failure_reason",
+    "autonomy_level",
+    "approval_status",
+    "review_required",
     "next_action",
     "updated_at",
     "timezone_name"
@@ -65,6 +68,25 @@
         "string",
         "null"
       ]
+    },
+    "autonomy_level": {
+      "type": "string",
+      "enum": [
+        "L1_human_approval",
+        "L2_auto_with_review",
+        "L3_full_auto"
+      ]
+    },
+    "approval_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "not_required"
+      ]
+    },
+    "review_required": {
+      "type": "boolean"
     },
     "next_action": {
       "type": "string",

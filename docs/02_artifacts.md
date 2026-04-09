@@ -11,7 +11,7 @@ Each project should maintain the following files.
 | `<PROJECT_ROOT>/DECISIONS.md` | Important decisions and why alternatives were rejected | Spec Architect | Yes |
 | `<PROJECT_ROOT>/SESSION_STATE.md` | Current stage, current FB, current MB, latest blocker, and next action | Harness runtime syncs it; recovery/spec may repair it when needed | Yes |
 | `<PROJECT_ROOT>/QUALITY_RULEBOOK.md` | Global quality profiles, checks, and waiver policy | Spec Architect | Yes |
-| `<PROJECT_ROOT>/QUALITY_MEMORY.md` | Reusable lessons, repeated failures, and high-risk reminders | Builder and Reviewer | Yes |
+| `<PROJECT_ROOT>/QUALITY_MEMORY.md` | Human-readable quality memory bridge built from runtime memory plus curated human edits | Harness runtime syncs it; Builder and Reviewer may refine it | Yes |
 | `<PROJECT_ROOT>/DATA_MODEL.md` | Core entities, relationships, and persistence rules | Spec Architect | Usually |
 | `<PROJECT_ROOT>/API_CONTRACT.md` or `<PROJECT_ROOT>/openapi.yaml` | API behavior and payload rules | Spec Architect | If APIs exist |
 | `<PROJECT_ROOT>/VERSION_LOG.md` | Important checkpoints and rollback references | Builder | Recommended |
@@ -20,6 +20,7 @@ Each project should maintain the following files.
 | `<PROJECT_ROOT>/function_blocks/*.md` | Product-level delivery units with ontology frame, impact map, acceptance, and MB plan | Spec Architect | Yes before scene planning finishes |
 | `<PROJECT_ROOT>/missions/*.md` | Bounded code change units under one active FB | Spec Architect or Builder | Yes before `BUILD` |
 | `<PROJECT_ROOT>/missions/*.machine.json` | Machine-readable mission sidecars used by harness validation and execution | Spec Architect or Builder | Yes for runnable `MB`s |
+| `<PROJECT_ROOT>/evals/*.json` | Reusable machine-checkable eval assets referenced by one or more `MB`s | Spec Architect or Builder | Recommended when checks should be reused |
 | `<PROJECT_ROOT>/runtime/state/*.state.json` | Machine-readable current execution state for one `MB` | Harness runtime | Yes when harness is used |
 | `<PROJECT_ROOT>/runtime/attempts/**` | Per-attempt prompts, raw outputs, diffs, scope checks, and verification reports | Harness runtime | Yes when harness is used |
 | `<PROJECT_ROOT>/runtime/memory/project_memory.json` | Cross-session validated knowledge from completed work | Harness runtime | Recommended when harness is used |
@@ -87,6 +88,17 @@ That means:
 - the Builder reads it as context
 - `state_writer.py` syncs it after runtime state changes
 - runnable `MB`s should not list `SESSION_STATE.md` under `required_artifact_updates`
+
+## Runtime Memory Rule
+
+When the harness is active, machine memory lives in:
+
+- `<PROJECT_ROOT>/runtime/memory/project_memory.json`
+- `<PROJECT_ROOT>/runtime/memory/failure_log.json`
+
+`QUALITY_MEMORY.md` is the bridge summary for humans.
+
+Do not treat `QUALITY_MEMORY.md` as the machine memory source of truth.
 
 ## FB, MB, And Quality Report Storage
 
@@ -183,6 +195,7 @@ Optional Appendix additions:
 Harness rule:
 
 - each runnable `MB` should declare one machine sidecar reference in its markdown body
+- machine sidecars may also reference reusable `evals/*.json`
 - the full verification evidence for one attempt belongs in `<PROJECT_ROOT>/runtime/attempts/<mb_id>/<attempt_id>/verification_report.json`
 - the retry prompt summary derived from that report is not a separate truth file
 - the current machine state should store `last_verification_report_path` instead of inventing alternate names

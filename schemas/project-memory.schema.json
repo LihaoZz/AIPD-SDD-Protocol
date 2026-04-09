@@ -23,7 +23,11 @@
           "parent_fb_id",
           "result",
           "validated_evidence",
-          "key_decisions"
+          "key_decisions",
+          "pattern_type",
+          "applicability",
+          "recorded_at",
+          "timezone_name"
         ],
         "properties": {
           "mb_id": {
@@ -60,6 +64,52 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "pattern_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "applicability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mb_ids",
+              "parent_fb_ids"
+            ],
+            "properties": {
+              "mb_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "parent_fb_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          },
+          "recorded_at": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timezone_name": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }

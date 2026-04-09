@@ -22,10 +22,17 @@
       "type": "no_out_of_scope_changes"
     }
   ],
+  "eval_refs": [],
   "retry_policy": {
     "max_retries": 3,
     "on_retry_limit": "route_to_recovery"
   },
+  "memory_policy": {
+    "inject_failure_patterns": true,
+    "inject_validated_patterns": true,
+    "max_memory_items": 3
+  },
+  "autonomy_level": "L2_auto_with_review",
   "prompt_feedback": {
     "include_last_verification_digest": true,
     "include_last_failure_reason": true,

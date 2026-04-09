@@ -55,6 +55,7 @@ Recommended layout:
 
 ```text
 <PROJECT_ROOT>/
+├── evals/
 ├── missions/
 │   ├── fb1-mb1.md
 │   └── fb1-mb1.machine.json
@@ -72,6 +73,51 @@ Recommended layout:
 │       └── mb_preflight_fb1-mb1.json
 └── SESSION_STATE.md
 ```
+
+## Mandatory Hook Rule
+
+Hooks are a required layer, not an optional enhancement.
+
+Use the same hook scripts for both:
+
+- direct Codex runs through `scripts/codex_exec_with_hooks.py`
+- `mb_runner.py` execution loops
+
+Required hooks:
+
+- `pre_tool_hook`
+- `post_tool_hook`
+- `stop_hook`
+
+Hooks are lifecycle guards.
+
+They do not replace `mb_runner`, `verifier.py`, or the runtime state machine.
+
+## Eval Asset Rule
+
+An eval asset is a reusable machine-checkable verification definition.
+
+Store project-specific eval assets under:
+
+- `<PROJECT_ROOT>/evals/*.json`
+
+Use them when the same check should be reused across more than one `MB`.
+
+Keep these meanings separate:
+
+- `eval asset`: reusable verification definition
+- `verification_report.json`: one attempt's verification result
+
+## Memory Bridge Rule
+
+`project_memory.json` and `failure_log.json` are the machine memory sources of truth.
+
+The harness must bridge them in two directions:
+
+- machine -> machine: inject relevant patterns into the next Builder prompt
+- machine -> human: sync reusable summaries into `QUALITY_MEMORY.md`
+
+Do not treat `QUALITY_MEMORY.md` as the machine memory source of truth.
 
 ## Verification Report vs Digest
 
@@ -93,6 +139,8 @@ If one attempt fails and retry is still allowed, `mb_runner` must inject all of 
 3. `retry_count`
 
 Do not retry with a generic "try again" prompt.
+
+When memory lookup finds relevant prior failures or validated patterns, inject them as `Memory Context` in the same prompt packet.
 
 ## Structural Route Rule
 
@@ -143,6 +191,14 @@ Do not list `SESSION_STATE.md` under `required_artifact_updates` in a runnable m
 
 The Builder may read `SESSION_STATE.md`, but session-state syncing belongs to the harness runtime.
 
+`autonomy_level`, `approval_status`, and `review_required` belong in machine runtime state, not only in markdown.
+
+Supported autonomy levels:
+
+- `L1_human_approval`
+- `L2_auto_with_review`
+- `L3_full_auto`
+
 ## Non-Git Workspace Rule
 
 The harness may run against a plain directory instead of a Git repository.
@@ -166,3 +222,11 @@ Recommended fields:
 - `updated_at`
 - `generated_at`
 - `timezone_name`
+
+## Future Split Rule
+
+Keep `PROTOCOL_ROOT` and `PROJECT_ROOT` conceptually distinct.
+
+This version still assumes the normal working mode is to copy the protocol repository into `PROJECT_ROOT`.
+
+Do not hardcode new runtime features in a way that would make future protocol/project split impossible.

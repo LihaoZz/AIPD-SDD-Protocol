@@ -20,14 +20,23 @@
         "additionalProperties": false,
         "required": [
           "mb_id",
+          "parent_fb_id",
           "attempt_id",
           "failure_type",
           "condition",
           "attempted_fix",
-          "result"
+          "result",
+          "root_cause_guess",
+          "repeated_failure_key",
+          "recorded_at",
+          "timezone_name"
         ],
         "properties": {
           "mb_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parent_fb_id": {
             "type": "string",
             "minLength": 1
           },
@@ -48,6 +57,29 @@
             "minLength": 1
           },
           "result": {
+            "type": "string",
+            "minLength": 1
+          },
+          "root_cause_guess": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repeated_failure_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "recorded_at": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timezone_name": {
             "type": "string",
             "minLength": 1
           }

@@ -28,8 +28,9 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 13. `user_triggered` research may run immediately. `system_triggered` research requires user approval before any search begins.
 14. Record adopted research outcomes in artifacts (active `MB`, `DECISIONS`, or `RESEARCH_NOTE`) instead of leaving them only in chat.
 15. If retry feedback is present, use `last_verification_digest`, `last_failure_reason`, and `retry_count` as binding repair input instead of repeating the same attempt blindly.
-16. Return evidence, let the harness runtime sync session state, and hand off to the Reviewer instead of self-approving.
-17. If the workspace is not a Git repository, do not use `git status` or `git diff` to decide completion or report changed files. Report only the files you directly edited.
+16. If `Memory Context` is present, treat its avoid/prefer guidance as binding until new evidence proves otherwise.
+17. Return evidence, let the harness runtime sync session state, and follow the mission packet autonomy level instead of self-approving.
+18. If the workspace is not a Git repository, do not use `git status` or `git diff` to decide completion or report changed files. Report only the files you directly edited.
 
 ## Required Inputs
 
@@ -57,6 +58,7 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 - running system-triggered research without user approval
 - using research to silently expand `MB` scope
 - ignoring `last_verification_digest` on retry
+- ignoring `Memory Context` when it is present
 - treating a retry summary as a replacement for the full `verification_report.json`
 - using `git status` or `git diff` in a non-git workspace just to report changed files or scope
 
@@ -94,8 +96,9 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 13. `user_triggered` research 可直接执行；`system_triggered` research 在搜索前必须先得到用户同意。
 14. 只要采纳了 research 结论，就必须写回工件（当前 `MB`、`DECISIONS` 或 `RESEARCH_NOTE`），不能只停留在聊天里。
 15. 如果当前是 retry，必须把 `last_verification_digest`、`last_failure_reason` 和 `retry_count` 当作绑定修复输入，而不是盲目重复同样尝试。
-16. 返回证据，让 harness runtime 同步 session state，并交给 Reviewer，而不是自己宣布通过。
-17. 如果当前工作区不是 Git 仓库，不要依赖 `git status` 或 `git diff` 来判断是否完成或生成 changed files。只报告你直接编辑过的文件。
+16. 如果存在 `Memory Context`，必须把其中的 avoid/prefer 建议当作绑定输入，除非新的证据明确推翻它。
+17. 返回证据，让 harness runtime 同步 session state，并按照 mission packet 中的 autonomy level 进入 review 或 close，而不是自己宣布通过。
+18. 如果当前工作区不是 Git 仓库，不要依赖 `git status` 或 `git diff` 来判断是否完成或生成 changed files。只报告你直接编辑过的文件。
 
 #### 必需输入
 
@@ -123,5 +126,6 @@ Read `README.md` and `docs/00_lifecycle.md` before acting.
 - 未获用户同意就执行 system-triggered research
 - 用 research 为由静默扩大 `MB` 范围
 - 在 retry 时忽略 `last_verification_digest`
+- 当 `Memory Context` 存在时忽略它
 - 把 retry 摘要当成完整 `verification_report.json` 的替代品
 - 在非 Git 工作区里，仅为了汇报 changed files 或 scope 就去依赖 `git status` 或 `git diff`

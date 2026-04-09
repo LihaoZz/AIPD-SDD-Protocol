@@ -51,6 +51,12 @@ def main() -> int:
             "This should be routed as a `spec_gap` before implementation.\n\n"
             "Changed files: none."
         )
+    elif mb_id == "fb1-mb6":
+        src_file.write_text("PASS_SIX\n", encoding="utf-8")
+        message = "Applied PASS_SIX to src/app.py for eval asset verification."
+    elif mb_id == "fb1-mb7":
+        src_file.write_text("PASS_SEVEN\n", encoding="utf-8")
+        message = "Applied PASS_SEVEN to src/app.py after human approval."
     else:
         message = "Unknown MB."
 

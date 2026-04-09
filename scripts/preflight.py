@@ -27,13 +27,14 @@ from harness_common import (
 )
 
 
-def build_result(level: str, project_root: Path, mb_id: str | None, result: str, summary: str, missing_items: list[str], blocking_items: list[str], checks: list[dict[str, str]]) -> dict[str, object]:
+def build_result(level: str, project_root: Path, mb_id: str | None, result: str, summary: str, missing_items: list[str], blocking_items: list[str], checks: list[dict[str, str]], autonomy_decision: str | None = None) -> dict[str, object]:
     return {
         "schema_version": "1.0",
         "level": level,
         "project_root": str(project_root),
         "mb_id": mb_id,
         "result": result,
+        "autonomy_decision": autonomy_decision,
         "summary": summary,
         "missing_items": missing_items,
         "blocking_items": blocking_items,
@@ -102,6 +103,7 @@ def mb_preflight(project_root: Path, mb_id: str) -> tuple[dict[str, object], lis
     checks: list[dict[str, str]] = []
     missing_items: list[str] = []
     blocking_items: list[str] = []
+    autonomy_decision: str | None = None
 
     mission_md = mission_markdown_path(project_root, mb_id)
     spec_path = mission_machine_spec_path(project_root, mb_id)
@@ -146,6 +148,26 @@ def mb_preflight(project_root: Path, mb_id: str) -> tuple[dict[str, object], lis
                 blocking_items.append(f"input artifact missing: {rel_path}")
                 checks.append({"name": "input_artifact", "status": "fail", "detail": rel_path})
 
+        for rel_path in spec_data.get("eval_refs", []):
+            eval_asset = normalize_relpath(project_root, rel_path)
+            if eval_asset.exists():
+                checks.append({"name": "eval_asset", "status": "pass", "detail": rel_path})
+            else:
+                blocking_items.append(f"eval asset missing: {rel_path}")
+                checks.append({"name": "eval_asset", "status": "fail", "detail": rel_path})
+        if not spec_data.get("acceptance") and not spec_data.get("eval_refs"):
+            blocking_items.append("mission has no acceptance or eval refs")
+            checks.append({"name": "verification_inputs", "status": "fail", "detail": "at least one acceptance or eval ref is required"})
+
+        autonomy_level = spec_data.get("autonomy_level", "L2_auto_with_review")
+        checks.append({"name": "autonomy_level", "status": "pass", "detail": autonomy_level})
+        if autonomy_level == "L1_human_approval":
+            autonomy_decision = "human_approval_required_before_execution"
+        elif autonomy_level == "L2_auto_with_review":
+            autonomy_decision = "auto_execute_then_review"
+        else:
+            autonomy_decision = "full_auto_allowed"
+
         state_path = runtime_state_path(project_root, mb_id)
         if state_path.exists():
             state_data = read_json(state_path)
@@ -161,6 +183,15 @@ def mb_preflight(project_root: Path, mb_id: str) -> tuple[dict[str, object], lis
                     checks.append({"name": "retry_limit", "status": "fail", "detail": f"{state_data.get('retry_count')} >= {retry_limit}"})
                 else:
                     checks.append({"name": "retry_limit", "status": "pass", "detail": f"< {retry_limit}"})
+                if autonomy_level == "L1_human_approval":
+                    approval_status = state_data.get("approval_status", "pending")
+                    checks.append(
+                        {
+                            "name": "approval_status",
+                            "status": "warn" if approval_status != "approved" else "pass",
+                            "detail": approval_status,
+                        }
+                    )
         else:
             missing_items.append(f"runtime/state/{mb_id}.state.json")
             checks.append({"name": "runtime_state_schema", "status": "warn", "detail": "state file will be initialized on first run"})
@@ -168,7 +199,7 @@ def mb_preflight(project_root: Path, mb_id: str) -> tuple[dict[str, object], lis
     result = "blocked" if blocking_items else "ready"
     summary = "MB preflight passed." if result == "ready" else "MB preflight found blocking issues."
     return finalize_result(
-        build_result("mb", project_root, mb_id, result, summary, missing_items, blocking_items, checks),
+        build_result("mb", project_root, mb_id, result, summary, missing_items, blocking_items, checks, autonomy_decision),
         mb_preflight_path(project_root, mb_id),
     )
 

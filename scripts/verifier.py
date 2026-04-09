@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
-from harness_common import read_json, resolve_path, validate_with_schema, write_json
+from harness_common import eval_asset_path, local_timestamp, local_timezone_name, read_json, resolve_path, validate_with_schema, write_json
 
 
 def resolve_json_pointer(payload: Any, pointer: str) -> Any:
@@ -24,6 +26,61 @@ def resolve_json_pointer(payload: Any, pointer: str) -> Any:
     return current
 
 
+def verification_items(project_root: Path, spec: dict[str, Any]) -> list[tuple[str, str, dict[str, Any]]]:
+    items: list[tuple[str, str, dict[str, Any]]] = []
+    for item in spec.get("acceptance", []):
+        items.append(("inline_acceptance", "acceptance", item))
+    for ref in spec.get("eval_refs", []):
+        payload = read_json(eval_asset_path(project_root, ref))
+        schema_errors = validate_with_schema(payload, "eval-asset.schema.json")
+        if schema_errors:
+            raise ValueError(f"invalid eval asset {ref}: {'; '.join(schema_errors)}")
+        items.append(("eval_asset", ref, payload["check"]))
+    return items
+
+
+def run_api_scenario(item: dict[str, Any]) -> dict[str, Any]:
+    headers = dict(item.get("headers") or {})
+    body_bytes = None
+    if "request_json" in item:
+        body_bytes = json.dumps(item["request_json"]).encode("utf-8")
+        headers.setdefault("Content-Type", "application/json")
+
+    request = urllib.request.Request(
+        item["url"],
+        data=body_bytes,
+        headers=headers,
+        method=item["method"].upper(),
+    )
+    response_status = None
+    response_body = ""
+    try:
+        with urllib.request.urlopen(request) as response:
+            response_status = response.getcode()
+            response_body = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        response_status = exc.code
+        response_body = exc.read().decode("utf-8")
+
+    passed = response_status == item["expected_status"]
+    evidence = f"status matched expected: {passed}"
+    if passed and item.get("response_json_pointer") is not None:
+        payload = json.loads(response_body or "null")
+        actual = resolve_json_pointer(payload, item["response_json_pointer"])
+        passed = actual == item.get("expected_json")
+        evidence = f"json field matched expected value: {passed}"
+
+    return {
+        "method": item["method"].upper(),
+        "url": item["url"],
+        "expected_status": item["expected_status"],
+        "response_status": response_status,
+        "response_body": response_body,
+        "status": "pass" if passed else "fail",
+        "evidence": evidence,
+    }
+
+
 def run_verification(
     project_root: Path,
     spec: dict[str, Any],
@@ -32,10 +89,12 @@ def run_verification(
     scope_result: dict[str, Any],
 ) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
-    for item in spec["acceptance"]:
+    for source_kind, source_ref, item in verification_items(project_root, spec):
         check_result: dict[str, Any] = {
             "check_id": item["check_id"],
             "type": item["type"],
+            "source_kind": source_kind,
+            "source_ref": source_ref,
             "status": "fail",
             "evidence": "",
         }
@@ -89,6 +148,8 @@ def run_verification(
                     "evidence": f"changed_files={changed_files}",
                 }
             )
+        elif item["type"] == "api_scenario":
+            check_result.update(run_api_scenario(item))
         checks.append(check_result)
 
     failed = [check for check in checks if check["status"] == "fail"]
@@ -101,6 +162,8 @@ def run_verification(
         "result": result,
         "summary": summary,
         "checks": checks,
+        "generated_at": local_timestamp(),
+        "timezone_name": local_timezone_name(),
     }
     schema_errors = validate_with_schema(report, "verification-report.schema.json")
     if schema_errors:

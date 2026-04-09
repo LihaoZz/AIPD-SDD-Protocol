@@ -46,6 +46,12 @@
         "blocked"
       ]
     },
+    "autonomy_decision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "summary": {
       "type": "string",
       "minLength": 1

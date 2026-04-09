@@ -13,10 +13,13 @@ It stores:
 - role prompts
 - templates
 - validation tools
+- hook entrypoints
 
 Harness runtime outputs belong in the external `PROJECT_ROOT`, not in this repository.
 
 Real product state lives in the external `PROJECT_ROOT`.
+
+Direct Codex execution in this protocol should go through `scripts/codex_exec_with_hooks.py` so the mandatory hook layer stays active even outside `mb_runner.py`.
 
 ## Core Idea
 

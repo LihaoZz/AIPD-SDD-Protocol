@@ -37,6 +37,7 @@ Store only reusable quality lessons across function blocks and mission blocks.
 ## Usage Rules
 
 - Do not use this file as a running log of every MB.
+- Treat this file as the human-readable bridge from runtime memory, not as the machine memory source of truth.
 - Record only reusable lessons, repeated failures, stable good patterns, and high-risk reminders.
 - Update this file when:
   a repeated failure appears,

@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2100" height="1900" viewBox="0 0 2100 1900" role="img" aria-labelledby="title desc">
+  <title id="title">Single MB harness detailed paths</title>
+  <desc id="desc">Detailed SVG flowchart for one mission block running through the harness, including preflight, approval, retries, recovery routes, hooks, verification, and close paths.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8f8f4; }
+      .title { font: 700 30px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; fill: #13212c; }
+      .subtitle { font: 400 15px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; fill: #52636f; }
+      .label { font: 700 15px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; fill: #102027; }
+      .body { font: 400 13px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; fill: #24323a; }
+      .small { font: 400 12px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; fill: #61727d; }
+      .tiny { font: 400 11px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; fill: #6a7e8b; }
+      .node { fill: #ffffff; stroke: #90a4ae; stroke-width: 1.5; rx: 18; ry: 18; }
+      .start { fill: #ffffff; stroke: #2457a6; stroke-width: 2.2; }
+      .decision { fill: #eef6ff; stroke: #2f6fb2; stroke-width: 2.1; }
+      .runtime { fill: #eef7ec; stroke: #3b8e52; stroke-width: 2; }
+      .artifact { fill: #fff8e6; stroke: #c98b19; stroke-width: 2; }
+      .hook { fill: #f2efff; stroke: #6b56c7; stroke-width: 2; }
+      .blocked { fill: #ffe6dd; stroke: #d1513f; stroke-width: 2.2; }
+      .recovery { fill: #ffe2dd; stroke: #cb4b37; stroke-width: 2.2; }
+      .success { fill: #e1f5e8; stroke: #2d8b57; stroke-width: 2.2; }
+      .review { fill: #e6f0ff; stroke: #2a6ac6; stroke-width: 2.2; }
+      .legend { fill: #ffffff; stroke: #c8d3d9; stroke-width: 1.4; rx: 18; ry: 18; }
+      .line { stroke: #607d8b; stroke-width: 2.2; fill: none; }
+      .soft { stroke: #8ea2ad; stroke-width: 2; fill: none; }
+      .dashed { stroke: #78909c; stroke-width: 2; fill: none; stroke-dasharray: 8 6; }
+      .loop { stroke: #4f6572; stroke-width: 2.2; fill: none; stroke-dasharray: 10 6; }
+    </style>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#607d8b" />
+    </marker>
+    <marker id="arrowSoft" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#8ea2ad" />
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="2100" height="1900" />
+
+  <text class="title" x="1050" y="46" text-anchor="middle">单个 MB 的 Harness 详细路径图</text>
+  <text class="subtitle" x="1050" y="72" text-anchor="middle">对齐 scripts/mb_runner.py、scripts/preflight.py 与 tests/test_harness.py 的真实分支</text>
+
+  <rect class="legend" x="1450" y="100" width="570" height="190" />
+  <text class="label" x="1480" y="130">图例</text>
+  <rect class="decision" x="1480" y="148" width="118" height="32" rx="10" ry="10" />
+  <text class="tiny" x="1539" y="168" text-anchor="middle">决策 / 分叉</text>
+  <rect class="runtime" x="1618" y="148" width="118" height="32" rx="10" ry="10" />
+  <text class="tiny" x="1677" y="168" text-anchor="middle">运行状态</text>
+  <rect class="artifact" x="1756" y="148" width="118" height="32" rx="10" ry="10" />
+  <text class="tiny" x="1815" y="168" text-anchor="middle">产物落盘</text>
+  <rect class="hook" x="1894" y="148" width="96" height="32" rx="10" ry="10" />
+  <text class="tiny" x="1942" y="168" text-anchor="middle">hook</text>
+  <rect class="recovery" x="1480" y="196" width="118" height="32" rx="10" ry="10" />
+  <text class="tiny" x="1539" y="216" text-anchor="middle">Recovery</text>
+  <rect class="blocked" x="1618" y="196" width="118" height="32" rx="10" ry="10" />
+  <text class="tiny" x="1677" y="216" text-anchor="middle">Blocked</text>
+  <rect class="success" x="1756" y="196" width="118" height="32" rx="10" ry="10" />
+  <text class="tiny" x="1815" y="216" text-anchor="middle">Passed</text>
+  <rect class="review" x="1894" y="196" width="96" height="32" rx="10" ry="10" />
+  <text class="tiny" x="1942" y="216" text-anchor="middle">Review</text>
+  <text class="tiny" x="1480" y="255">样例映射：</text>
+  <text class="tiny" x="1545" y="255">`fb1-mb2` scope violation，`fb1-mb3` fail once then retry pass，`fb1-mb4` retry limit，`fb1-mb5` explicit spec_gap，`fb1-mb6` L3 close，`fb1-mb7` approval gate</text>
+
+  <rect class="start" x="770" y="110" width="560" height="84" rx="18" ry="18" />
+  <text class="label" x="1050" y="140" text-anchor="middle">Start: run `mb_runner.py --project-root ... --mb-id ...`</text>
+  <text class="body" x="1050" y="165" text-anchor="middle">目标：把一个 MB 跑成可验证的 bounded execution unit</text>
+  <text class="small" x="1050" y="184" text-anchor="middle">入口在 `run_once(...)`</text>
+
+  <rect class="decision" x="770" y="235" width="560" height="102" rx="18" ry="18" />
+  <text class="label" x="1050" y="267" text-anchor="middle">MB PREFLIGHT</text>
+  <text class="body" x="1050" y="292" text-anchor="middle">检查 mission markdown、machine spec、parent FB、input_artifacts、eval_refs、retry_limit、autonomy</text>
+  <text class="small" x="1050" y="315" text-anchor="middle">结果：`ready` 才能继续；否则立即返回阻断结果</text>
+
+  <rect class="blocked" x="70" y="250" width="420" height="92" rx="18" ry="18" />
+  <text class="label" x="280" y="282" text-anchor="middle">路径 0：Preflight 阻断</text>
+  <text class="body" x="280" y="307" text-anchor="middle">machine spec 缺失、parent FB 缺失、输入工件缺失、重试已达上限等</text>
+  <text class="small" x="280" y="329" text-anchor="middle">输出 JSON 并返回 1；不会进入 attempt loop</text>
+
+  <line class="line" x1="1050" y1="194" x2="1050" y2="235" marker-end="url(#arrow)" />
+  <line class="soft" x1="770" y1="286" x2="490" y2="296" marker-end="url(#arrowSoft)" />
+
+  <rect class="runtime" x="770" y="385" width="560" height="92" rx="18" ry="18" />
+  <text class="label" x="1050" y="417" text-anchor="middle">Load Or Init Runtime State</text>
+  <text class="body" x="1050" y="442" text-anchor="middle">读取 `runtime/state/&lt;mb_id&gt;.state.json`，不存在则用默认 state</text>
+  <text class="small" x="1050" y="463" text-anchor="middle">默认：status=ready, retry_count=0, next_action=run</text>
+
+  <rect class="decision" x="770" y="520" width="560" height="104" rx="18" ry="18" />
+  <text class="label" x="1050" y="552" text-anchor="middle">Autonomy / Existing State Gate</text>
+  <text class="body" x="1050" y="577" text-anchor="middle">设置 autonomy_level 与 approval_status；检查是否已是 terminal state</text>
+  <text class="small" x="1050" y="600" text-anchor="middle">如果 state 已是 `passed` 或 `routed_to_recovery`，直接打印 state 并返回</text>
+
+  <rect class="blocked" x="70" y="520" width="420" height="108" rx="18" ry="18" />
+  <text class="label" x="280" y="552" text-anchor="middle">路径 1：L1 未批准</text>
+  <text class="body" x="280" y="577" text-anchor="middle">若 `autonomy_level = L1_human_approval` 且未传 `--approve`</text>
+  <text class="body" x="280" y="600" text-anchor="middle">state -> `blocked`，reason=`human_approval_required`</text>
+  <text class="small" x="280" y="622" text-anchor="middle">样例：`fb1-mb7` 首次运行</text>
+
+  <rect class="runtime" x="70" y="660" width="420" height="86" rx="18" ry="18" />
+  <text class="label" x="280" y="691" text-anchor="middle">路径 2：已是终态</text>
+  <text class="body" x="280" y="716" text-anchor="middle">如果 state 已经 `passed` 或 `routed_to_recovery`，本次不重复执行</text>
+  <text class="small" x="280" y="737" text-anchor="middle">打印已有 state 后返回 0</text>
+
+  <line class="line" x1="1050" y1="337" x2="1050" y2="385" marker-end="url(#arrow)" />
+  <line class="line" x1="1050" y1="477" x2="1050" y2="520" marker-end="url(#arrow)" />
+  <line class="soft" x1="770" y1="572" x2="490" y2="574" marker-end="url(#arrowSoft)" />
+  <line class="soft" x1="770" y1="598" x2="490" y2="703" marker-end="url(#arrowSoft)" />
+
+  <rect class="artifact" x="770" y="670" width="560" height="110" rx="18" ry="18" />
+  <text class="label" x="1050" y="702" text-anchor="middle">Attempt Setup</text>
+  <text class="body" x="1050" y="727" text-anchor="middle">生成 `attempt_id`，创建 attempt 目录，读取 memory context，构建 prompt</text>
+  <text class="small" x="1050" y="750" text-anchor="middle">落盘：`prompt.md`、`before_snapshot.json`，state -> `running` / `await_codex_result`</text>
+  <text class="small" x="1050" y="770" text-anchor="middle">失败重试时会把 verification digest / failure reason / retry_count 注入 prompt</text>
+
+  <rect class="hook" x="770" y="820" width="560" height="86" rx="18" ry="18" />
+  <text class="label" x="1050" y="851" text-anchor="middle">Pre Tool Hook</text>
+  <text class="body" x="1050" y="876" text-anchor="middle">先跑 `pre_tool_hook`，不通过则禁止进入 Codex 执行</text>
+  <text class="small" x="1050" y="897" text-anchor="middle">落盘：`pre_tool_hook.json`</text>
+
+  <rect class="blocked" x="70" y="808" width="420" height="104" rx="18" ry="18" />
+  <text class="label" x="280" y="840" text-anchor="middle">路径 3：Pre Hook 阻断</text>
+  <text class="body" x="280" y="865" text-anchor="middle">state -> `blocked`，reason=`hook_pre_block`</text>
+  <text class="small" x="280" y="887" text-anchor="middle">同步 SESSION_STATE，追加 failure_log，返回 1</text>
+
+  <line class="line" x1="1050" y1="624" x2="1050" y2="670" marker-end="url(#arrow)" />
+  <line class="line" x1="1050" y1="780" x2="1050" y2="820" marker-end="url(#arrow)" />
+  <line class="soft" x1="770" y1="863" x2="490" y2="860" marker-end="url(#arrowSoft)" />
+
+  <rect class="runtime" x="770" y="950" width="560" height="110" rx="18" ry="18" />
+  <text class="label" x="1050" y="982" text-anchor="middle">Codex Execution</text>
+  <text class="body" x="1050" y="1007" text-anchor="middle">运行 Codex CLI，收集 stdout / stderr / last message</text>
+  <text class="small" x="1050" y="1030" text-anchor="middle">落盘：`execution_result.json`、`raw_output.txt`、`raw_error.txt`、`last_message.txt`</text>
+  <text class="small" x="1050" y="1050" text-anchor="middle">随后记录 `after_snapshot.json` 与 `changed_files.json`</text>
+
+  <rect class="hook" x="770" y="1105" width="560" height="86" rx="18" ry="18" />
+  <text class="label" x="1050" y="1136" text-anchor="middle">Post Tool Hook + Scope Guard</text>
+  <text class="body" x="1050" y="1161" text-anchor="middle">运行 `post_tool_hook`，然后检查 changed files 是否越界</text>
+  <text class="small" x="1050" y="1182" text-anchor="middle">落盘：`post_tool_hook.json`、`scope_guard.json`</text>
+
+  <rect class="recovery" x="70" y="1088" width="420" height="110" rx="18" ry="18" />
+  <text class="label" x="280" y="1120" text-anchor="middle">路径 4：Scope Violation</text>
+  <text class="body" x="280" y="1145" text-anchor="middle">若 scope_guard 不通过，直接 `routed_to_recovery`</text>
+  <text class="body" x="280" y="1168" text-anchor="middle">reason=`scope_violation`，不会生成 verification_report</text>
+  <text class="small" x="280" y="1190" text-anchor="middle">样例：`fb1-mb2`</text>
+
+  <line class="line" x1="1050" y1="906" x2="1050" y2="950" marker-end="url(#arrow)" />
+  <line class="line" x1="1050" y1="1060" x2="1050" y2="1105" marker-end="url(#arrow)" />
+  <line class="soft" x1="770" y1="1148" x2="490" y2="1143" marker-end="url(#arrowSoft)" />
+
+  <rect class="decision" x="770" y="1238" width="560" height="104" rx="18" ry="18" />
+  <text class="label" x="1050" y="1270" text-anchor="middle">Assistant Message Classification</text>
+  <text class="body" x="1050" y="1295" text-anchor="middle">从 `last_message.txt` 识别显式结构性失败：`spec_gap` / `state_drift` / `environment_issue` / `review_context_gap`</text>
+  <text class="small" x="1050" y="1318" text-anchor="middle">也会识别“blocked by protocol conflicts / missing inputs”等 blocked spec gap 语义</text>
+
+  <rect class="recovery" x="70" y="1240" width="420" height="112" rx="18" ry="18" />
+  <text class="label" x="280" y="1272" text-anchor="middle">路径 5：显式结构性失败</text>
+  <text class="body" x="280" y="1297" text-anchor="middle">直接 `routed_to_recovery`，不进入 verification retry</text>
+  <text class="body" x="280" y="1320" text-anchor="middle">failure_type 可能是 `spec_gap` / `state_drift` / `environment_issue` / `review_context_gap`</text>
+  <text class="small" x="280" y="1342" text-anchor="middle">样例：`fb1-mb5` 走 `spec_gap`</text>
+
+  <line class="line" x1="1050" y1="1191" x2="1050" y2="1238" marker-end="url(#arrow)" />
+  <line class="soft" x1="770" y1="1290" x2="490" y2="1296" marker-end="url(#arrowSoft)" />
+
+  <rect class="runtime" x="770" y="1390" width="560" height="92" rx="18" ry="18" />
+  <text class="label" x="1050" y="1422" text-anchor="middle">Verification Phase</text>
+  <text class="body" x="1050" y="1447" text-anchor="middle">state -> `verifying`，运行 `run_verification(...)`</text>
+  <text class="small" x="1050" y="1468" text-anchor="middle">输入可能来自 inline acceptance 或 `eval_refs`；产物：`verification_report.json`</text>
+
+  <rect class="decision" x="770" y="1525" width="560" height="102" rx="18" ry="18" />
+  <text class="label" x="1050" y="1557" text-anchor="middle">Verification Result?</text>
+  <text class="body" x="1050" y="1582" text-anchor="middle">`pass` 走成功分支；`fail` 进入 retry / recovery 分支</text>
+  <text class="small" x="1050" y="1605" text-anchor="middle">失败时会记录 digest、failure reason，并把失败写入 failure_log</text>
+
+  <line class="line" x1="1050" y1="1342" x2="1050" y2="1390" marker-end="url(#arrow)" />
+  <line class="line" x1="1050" y1="1482" x2="1050" y2="1525" marker-end="url(#arrow)" />
+
+  <rect class="hook" x="1450" y="1390" width="500" height="92" rx="18" ry="18" />
+  <text class="label" x="1700" y="1422" text-anchor="middle">Stop Hook On Pass</text>
+  <text class="body" x="1700" y="1447" text-anchor="middle">verification pass 后仍需 stop hook 认可</text>
+  <text class="small" x="1700" y="1468" text-anchor="middle">否则虽然测试通过，也会被阻断</text>
+
+  <rect class="blocked" x="1450" y="1525" width="500" height="104" rx="18" ry="18" />
+  <text class="label" x="1700" y="1557" text-anchor="middle">路径 6：Stop Hook 阻断</text>
+  <text class="body" x="1700" y="1582" text-anchor="middle">state -> `blocked`，reason=`stop_hook_blocked`</text>
+  <text class="small" x="1700" y="1604" text-anchor="middle">同步 SESSION_STATE，写 failure_log，返回 1</text>
+
+  <rect class="success" x="1450" y="1668" width="500" height="148" rx="18" ry="18" />
+  <text class="label" x="1700" y="1700" text-anchor="middle">路径 7：Passed</text>
+  <text class="body" x="1700" y="1725" text-anchor="middle">state -> `passed`，写入 `last_verification_report_path` 与 digest</text>
+  <text class="body" x="1700" y="1748" text-anchor="middle">同步 SESSION_STATE，追加 project_memory，更新 QUALITY_MEMORY bridge</text>
+  <text class="small" x="1700" y="1771" text-anchor="middle">L1 / L2: `review_required = true`, `next_action = handoff_to_review`</text>
+  <text class="small" x="1700" y="1793" text-anchor="middle">L3: `review_required = false`, `next_action = close_mb`；样例：`fb1-mb6`</text>
+
+  <line class="soft" x1="1330" y1="1558" x2="1450" y2="1436" marker-end="url(#arrowSoft)" />
+  <line class="soft" x1="1700" y1="1482" x2="1700" y2="1525" marker-end="url(#arrowSoft)" />
+  <line class="soft" x1="1700" y1="1482" x2="1700" y2="1668" marker-end="url(#arrowSoft)" />
+
+  <rect class="artifact" x="770" y="1670" width="560" height="112" rx="18" ry="18" />
+  <text class="label" x="1050" y="1702" text-anchor="middle">路径 8：Verification Failed</text>
+  <text class="body" x="1050" y="1727" text-anchor="middle">retry_count += 1，保存 verification report path / digest / summary</text>
+  <text class="body" x="1050" y="1750" text-anchor="middle">同时 failure_log 记录 result = `retry` 或 `routed_to_recovery`</text>
+  <text class="small" x="1050" y="1772" text-anchor="middle">下一步取决于是否达到 `retry_policy.max_retries`</text>
+
+  <rect class="decision" x="770" y="1815" width="560" height="72" rx="18" ry="18" />
+  <text class="label" x="1050" y="1844" text-anchor="middle">Retry Limit Reached?</text>
+  <text class="small" x="1050" y="1866" text-anchor="middle">未达上限：state=`failed`, next_action=`retry`；达到上限：`routed_to_recovery`</text>
+
+  <rect class="runtime" x="1450" y="1830" width="500" height="58" rx="16" ry="16" />
+  <text class="body" x="1700" y="1864" text-anchor="middle">未达上限：回到新 attempt，prompt 注入 digest / reason / retry_count</text>
+
+  <rect class="recovery" x="70" y="1648" width="420" height="120" rx="18" ry="18" />
+  <text class="label" x="280" y="1680" text-anchor="middle">路径 9：Retry Limit -> Recovery</text>
+  <text class="body" x="280" y="1705" text-anchor="middle">state -> `routed_to_recovery`，next_action=`route_to_recovery`</text>
+  <text class="body" x="280" y="1728" text-anchor="middle">会跑 stop hook，并同步 SESSION_STATE</text>
+  <text class="small" x="280" y="1750" text-anchor="middle">样例：`fb1-mb4`；`fb1-mb3` 则是在上限前第二次 attempt 成功</text>
+
+  <line class="soft" x1="1050" y1="1627" x2="1050" y2="1670" marker-end="url(#arrowSoft)" />
+  <line class="soft" x1="1050" y1="1782" x2="1050" y2="1815" marker-end="url(#arrowSoft)" />
+  <line class="soft" x1="770" y1="1851" x2="490" y2="1708" marker-end="url(#arrowSoft)" />
+  <line class="soft" x1="1330" y1="1851" x2="1450" y2="1859" marker-end="url(#arrowSoft)" />
+
+  <path class="loop" d="M 1700 1830 C 1700 1240, 1380 1220, 1330 1220" marker-end="url(#arrow)" />
+  <text class="tiny" x="1682" y="1222">retry loop</text>
+
+  <rect class="review" x="1450" y="980" width="500" height="120" rx="18" ry="18" />
+  <text class="label" x="1700" y="1012" text-anchor="middle">成功后的外部去向</text>
+  <text class="body" x="1700" y="1037" text-anchor="middle">L1 / L2: handoff_to_review</text>
+  <text class="body" x="1700" y="1060" text-anchor="middle">L3: close_mb</text>
+  <text class="small" x="1700" y="1082" text-anchor="middle">这不是 harness 内再次分叉执行，而是写入 state 给后续场景读取</text>
+
+  <path class="dashed" d="M 1700 1668 C 1700 1500, 2000 1400, 2000 1100 C 2000 1000, 1920 988, 1950 1010" marker-end="url(#arrowSoft)" />
+
+  <rect class="legend" x="70" y="95" width="560" height="120" />
+  <text class="label" x="100" y="128">如何读这张图</text>
+  <text class="small" x="100" y="154">1. 中轴是正常主路径：preflight -> approval/state gate -> attempt setup -> hooks -> execution -> verification</text>
+  <text class="small" x="100" y="177">2. 左侧是中断或 recovery 路线，右侧是成功与关闭路线</text>
+  <text class="small" x="100" y="200">3. 虚线回环表示 verification 失败但尚未到 retry limit，会带着反馈进入下一次 attempt</text>
+</svg>

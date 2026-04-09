@@ -5,6 +5,7 @@
 - `scene`:
 - `project_root`:
 - `preflight_result`:
+- `autonomy_decision`:
 - `can_enter_scene`:
 
 ## Checked Items
