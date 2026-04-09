@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import threading
@@ -62,6 +63,40 @@ def summarize_output(last_message_path: Path) -> str:
     return text[:400]
 
 
+def classify_execution_failure(message_text: str, changed_files: list[str]) -> dict[str, str] | None:
+    lower = message_text.lower()
+    explicit_routes = {
+        "state_drift": "state_drift",
+        "environment_issue": "environment_issue",
+        "review_context_gap": "review_context_gap",
+        "spec_gap": "spec_gap",
+    }
+    for marker, failure_type in explicit_routes.items():
+        if marker in lower:
+            return {
+                "failure_type": failure_type,
+                "condition": f"Assistant explicitly reported {failure_type}.",
+            }
+
+    blocked_spec_gap_patterns = [
+        r"blocked by protocol conflicts",
+        r"upstream conflicts prevent a compliant run",
+        r"required upstream inputs (are )?missing",
+        r"required inputs are missing",
+        r"contract fix before implementation",
+        r"scope conflict needs resolution",
+        r"missing upstream inputs",
+    ]
+    if not changed_files and "blocked" in lower:
+        for pattern in blocked_spec_gap_patterns:
+            if re.search(pattern, lower):
+                return {
+                    "failure_type": "spec_gap",
+                    "condition": "Assistant reported a blocked contract or input conflict.",
+                }
+    return None
+
+
 def build_prompt(project_root: Path, spec: dict[str, Any], state: dict[str, Any]) -> str:
     builder_prompt = read_text(Path(__file__).resolve().parent.parent / "prompts" / "BUILDER.system.md")
     mission_md = read_text(mission_markdown_path(project_root, spec["mb_id"]))
@@ -104,6 +139,8 @@ def build_prompt(project_root: Path, spec: dict[str, Any], state: dict[str, Any]
 - Stay strictly inside allowed touch.
 - Do not edit files under forbidden touch.
 - Use the retry feedback to fix only the failed checks.
+- The workspace may not be a Git repository. Do not use git status or git diff just to report changed files.
+- Report changed files from the files you directly edited.
 - At the end, reply with a short summary and the changed files.
 
 {chr(10).join(context_sections)}
@@ -289,6 +326,32 @@ def run_once(
                     "failure_type": "scope_violation",
                     "condition": scope_result["summary"],
                     "attempted_fix": summarize_output(current_attempt_dir / "last_message.txt"),
+                    "result": "routed_to_recovery",
+                },
+            )
+            print(json.dumps(state, ensure_ascii=True, indent=2))
+            return 1
+
+        assistant_message = summarize_output(current_attempt_dir / "last_message.txt")
+        classified_failure = classify_execution_failure(assistant_message, changes)
+        if classified_failure is not None:
+            state.update(
+                {
+                    "status": "routed_to_recovery",
+                    "last_failure_reason": classified_failure["failure_type"],
+                    "next_action": "route_to_recovery",
+                }
+            )
+            write_state(project_root, state)
+            sync_session_state(project_root, spec["parent_fb_id"], state)
+            append_failure_log(
+                project_root,
+                {
+                    "mb_id": mb_id,
+                    "attempt_id": attempt_id,
+                    "failure_type": classified_failure["failure_type"],
+                    "condition": classified_failure["condition"],
+                    "attempted_fix": assistant_message,
                     "result": "routed_to_recovery",
                 },
             )

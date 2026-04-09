@@ -187,7 +187,7 @@ Every `MB` must:
 - declare which ontology elements and layers from the parent FB are in scope
 - list required upstream inputs when they exist
 - produce a quality report
-- update `SESSION_STATE.md`
+- return enough evidence for the harness runtime to sync `SESSION_STATE.md`
 
 If a needed quality rule does not exist yet, stop and request a rulebook update instead of improvising.
 
@@ -202,7 +202,7 @@ It is complete only when all required evidence exists:
 - required external inputs were consumed when relevant
 - the quality report
 - scope remained within the allowed boundary
-- session state was updated
+- session state was synced by the runtime
 
 ## 中文翻译
 

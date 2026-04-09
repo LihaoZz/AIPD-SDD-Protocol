@@ -826,6 +826,19 @@ def validate_mission(path: Path, project_root: Optional[Path] = None) -> list[st
             allowed_prefixes=("experience_prompts/",),
         )
 
+    required_artifact_updates = optional_markdown_value(path, "required_artifact_updates")
+    machine_spec_ref = optional_markdown_value(path, "machine_spec_ref")
+    if (
+        required_artifact_updates is not None
+        and "SESSION_STATE.md" in required_artifact_updates
+        and machine_spec_ref is not None
+        and machine_spec_ref.lower() != "none"
+    ):
+        fail(
+            f"{display_path(path, project_root)} must not list SESSION_STATE.md in required_artifact_updates for a runnable MB; session state is runtime-managed",
+            errors,
+        )
+
     return errors
 
 

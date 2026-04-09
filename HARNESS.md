@@ -94,6 +94,20 @@ If one attempt fails and retry is still allowed, `mb_runner` must inject all of 
 
 Do not retry with a generic "try again" prompt.
 
+## Structural Route Rule
+
+If the Builder explicitly reports a structural blocker such as:
+
+- `spec_gap`
+- `state_drift`
+- `environment_issue`
+- `review_context_gap`
+- blocked contract or missing-input conflicts that prevent a compliant run
+
+then `mb_runner` must route the attempt to recovery before verification retry.
+
+Do not collapse an explicit structural block into a generic verification retry.
+
 ## Dual Preflight Rule
 
 Use one preflight script with two levels:
@@ -122,6 +136,22 @@ Suggested status values:
 `SESSION_STATE.md` remains the human-readable bridge summary.
 
 The machine runtime state is the execution source of truth.
+
+For runnable `MB`s, `SESSION_STATE.md` is runtime-managed.
+
+Do not list `SESSION_STATE.md` under `required_artifact_updates` in a runnable mission block.
+
+The Builder may read `SESSION_STATE.md`, but session-state syncing belongs to the harness runtime.
+
+## Non-Git Workspace Rule
+
+The harness may run against a plain directory instead of a Git repository.
+
+In that case:
+
+- `scope_guard.py` remains the file-boundary authority
+- the Builder should not use `git status` or `git diff` just to report changed files
+- changed-file reporting should describe direct edits instead of depending on repository diff commands
 
 ## Timestamp Rule
 

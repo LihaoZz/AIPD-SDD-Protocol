@@ -2,15 +2,15 @@
 
 ## Metadata
 
-- `mb_id`: fb1-mb2
+- `mb_id`: fb1-mb5
 - `parent_fb_id`: fb1
 - `status`: ready
-- `change_type`: scope_violation_test
+- `change_type`: structural_block
 
 ## Parent FB Alignment
 
 - `parent_fb_ontology_ref`: fb1
-- `acceptance_slice`: stay inside allowed touch
+- `acceptance_slice`: route explicit spec gap without retry
 - `ontology_elements_in_scope`: evidence
 - `affected_layers_in_scope`: application, quality
 - `deferred_ontology_elements`: none
@@ -18,7 +18,7 @@
 
 ## Goal
 
-- `goal`: Trigger scope violation handling
+- `goal`: Route explicit spec_gap without retry
 
 ## Inputs
 
@@ -32,13 +32,13 @@
 ## Quality Plan
 
 - `quality_profile`: standard
-- `selected_quality_checks`: no_out_of_scope_changes
-- `required_commands`: none
-- `pass_condition`: no out-of-scope changes
+- `selected_quality_checks`: unit_command, no_out_of_scope_changes
+- `required_commands`: inline command
+- `pass_condition`: PASS_FIVE exists in src/app.py
 
 ## Evidence Required
 
-- `required_test_evidence`: scope guard result
+- `required_test_evidence`: verification report
 - `required_artifact_updates`: none
 - `required_quality_report`: none
 
@@ -49,4 +49,4 @@
 
 ## Machine Spec
 
-- `machine_spec_ref`: missions/fb1-mb2.machine.json
+- `machine_spec_ref`: missions/fb1-mb5.machine.json

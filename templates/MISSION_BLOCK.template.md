@@ -80,6 +80,8 @@
 - If the parent `FB` uses `external_ui_package` or `hybrid`, this `MB` is an integration slice, not a visual redesign task.
 - `selected_quality_checks` must be chosen from `QUALITY_RULEBOOK.md`.
 - This `MB` is complete only when its required quality report exists and all required checks are evaluated.
+- `required_artifact_updates` is only for source-of-truth artifacts that the Builder must update directly.
+- Do not list `SESSION_STATE.md` in `required_artifact_updates` for a runnable `MB`; the harness runtime syncs session state automatically.
 - Each runnable `MB` must have one machine sidecar with the same base id at `missions/<mb_id>.machine.json`.
 - `machine_spec_ref` should point to that sidecar using one relative path, or `none` only when the mission is explicitly non-runnable.
 - `Optional Appendix` may be omitted entirely when it adds no useful clarity.
@@ -132,7 +134,7 @@
 #### 必需证据
 
 - `required_test_evidence`：必需测试证据
-- `required_artifact_updates`：必需工件更新
+- `required_artifact_updates`：Builder 需要直接更新的必需真理源工件
 - `required_quality_report`：必需质量报告
 
 #### 结果
@@ -173,6 +175,8 @@
 - 如果父 `FB` 使用 `external_ui_package` 或 `hybrid`，这个 `MB` 是集成切片，不是视觉重设计任务。
 - `selected_quality_checks` 必须从 `QUALITY_RULEBOOK.md` 中选择。
 - 只有在所需质量报告存在且所有必需检查都已评估后，该 `MB` 才算完成。
+- `required_artifact_updates` 只用于 Builder 需要直接更新的真理源工件。
+- 对于可执行的 `MB`，不要把 `SESSION_STATE.md` 写进 `required_artifact_updates`；session state 由 harness runtime 自动同步。
 - 每个可执行的 `MB` 都必须在 `missions/` 目录下拥有同名 machine sidecar，例如 `fb1-mb1.machine.json`。
 - `machine_spec_ref` 应使用单个相对路径指向该 sidecar；只有明确不可运行的 mission 才能写 `none`。
 - `Optional Appendix` 在没有额外价值时可以整段省略。

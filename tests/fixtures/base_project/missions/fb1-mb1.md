@@ -39,7 +39,7 @@
 ## Evidence Required
 
 - `required_test_evidence`: verification report
-- `required_artifact_updates`: SESSION_STATE.md
+- `required_artifact_updates`: none
 - `required_quality_report`: none
 
 ## Result

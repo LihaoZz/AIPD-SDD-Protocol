@@ -66,6 +66,18 @@ class HarnessTestCase(unittest.TestCase):
         completed = self.run_python("validate_mb_spec.py", str(spec_path), expected=1)
         self.assertIn("allowed_touch", completed.stdout)
 
+    def test_validate_mission_rejects_runtime_managed_session_state_update(self) -> None:
+        mission_path = self.project_root / "missions" / "broken-session-state.md"
+        mission_text = (self.project_root / "missions" / "fb1-mb1.md").read_text(encoding="utf-8")
+        mission_text = mission_text.replace(
+            "- `required_artifact_updates`: none",
+            "- `required_artifact_updates`: SESSION_STATE.md",
+        )
+        mission_text += "\n\n## Usage Rules\n\n- Fixture only\n"
+        mission_path.write_text(mission_text, encoding="utf-8")
+        completed = self.run_python("sdd_guard.py", "check-mission", str(mission_path), expected=1)
+        self.assertIn("must not list SESSION_STATE.md", completed.stdout)
+
     def test_session_preflight_ready_bootstrap_and_blocked(self) -> None:
         ready = self.run_python("preflight.py", "--level", "session", "--project-root", str(self.project_root))
         self.assertIn('"result": "ready"', ready.stdout)
@@ -179,6 +191,12 @@ class HarnessTestCase(unittest.TestCase):
         failure_log = self.read_json("runtime/memory/failure_log.json")
         self.assertEqual(failure_log["failures"][0]["result"], "retry")
 
+    def test_mb_runner_prompt_warns_about_non_git_workspaces(self) -> None:
+        self.run_mb("fb1-mb1")
+        prompt_text = (self.project_root / "runtime" / "attempts" / "fb1-mb1" / "attempt-001" / "prompt.md").read_text(encoding="utf-8")
+        self.assertIn("The workspace may not be a Git repository.", prompt_text)
+        self.assertIn("Do not use git status or git diff just to report changed files.", prompt_text)
+
     def test_mb_runner_stops_at_retry_limit(self) -> None:
         self.run_mb("fb1-mb4", expected=1)
         state = self.read_json("runtime/state/fb1-mb4.state.json")
@@ -188,6 +206,19 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(attempts, ["attempt-001", "attempt-002", "attempt-003"])
         third_prompt = (attempts_root / "attempt-003" / "prompt.md").read_text(encoding="utf-8")
         self.assertIn("Retry Count: 2", third_prompt)
+
+    def test_mb_runner_routes_explicit_spec_gap_without_retry(self) -> None:
+        self.run_mb("fb1-mb5", expected=1)
+        state = self.read_json("runtime/state/fb1-mb5.state.json")
+        self.assertEqual(state["status"], "routed_to_recovery")
+        self.assertEqual(state["retry_count"], 0)
+        self.assertEqual(state["last_attempt_id"], "attempt-001")
+        self.assertEqual(state["last_failure_reason"], "spec_gap")
+        report_path = self.project_root / "runtime" / "attempts" / "fb1-mb5" / "attempt-001" / "verification_report.json"
+        self.assertFalse(report_path.exists())
+        failure_log = self.read_json("runtime/memory/failure_log.json")
+        self.assertEqual(failure_log["failures"][0]["failure_type"], "spec_gap")
+        self.assertEqual(failure_log["failures"][0]["result"], "routed_to_recovery")
 
 
 if __name__ == "__main__":

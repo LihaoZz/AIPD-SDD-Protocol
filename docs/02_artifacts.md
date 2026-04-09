@@ -9,7 +9,7 @@ Each project should maintain the following files.
 | `<PROJECT_ROOT>/CONSTITUTION.md` | Product intent, architecture boundaries, stack choices, and non-negotiables | Spec Architect | Yes |
 | `<PROJECT_ROOT>/SCOPE.md` | Current user-facing scope and acceptance definition | Spec Architect | Yes |
 | `<PROJECT_ROOT>/DECISIONS.md` | Important decisions and why alternatives were rejected | Spec Architect | Yes |
-| `<PROJECT_ROOT>/SESSION_STATE.md` | Current stage, current FB, current MB, latest blocker, and next action | Builder updates under protocol | Yes |
+| `<PROJECT_ROOT>/SESSION_STATE.md` | Current stage, current FB, current MB, latest blocker, and next action | Harness runtime syncs it; recovery/spec may repair it when needed | Yes |
 | `<PROJECT_ROOT>/QUALITY_RULEBOOK.md` | Global quality profiles, checks, and waiver policy | Spec Architect | Yes |
 | `<PROJECT_ROOT>/QUALITY_MEMORY.md` | Reusable lessons, repeated failures, and high-risk reminders | Builder and Reviewer | Yes |
 | `<PROJECT_ROOT>/DATA_MODEL.md` | Core entities, relationships, and persistence rules | Spec Architect | Usually |
@@ -79,6 +79,14 @@ It should always answer:
 - which artifacts must be read first
 
 Without this file, every new conversation wastes time reconstructing context and may drift.
+
+When the harness is active, `SESSION_STATE.md` is runtime-managed.
+
+That means:
+
+- the Builder reads it as context
+- `state_writer.py` syncs it after runtime state changes
+- runnable `MB`s should not list `SESSION_STATE.md` under `required_artifact_updates`
 
 ## FB, MB, And Quality Report Storage
 
@@ -178,6 +186,8 @@ Harness rule:
 - the full verification evidence for one attempt belongs in `<PROJECT_ROOT>/runtime/attempts/<mb_id>/<attempt_id>/verification_report.json`
 - the retry prompt summary derived from that report is not a separate truth file
 - the current machine state should store `last_verification_report_path` instead of inventing alternate names
+- `required_artifact_updates` should list only direct Builder-managed source-of-truth files
+- for runnable `MB`s, do not list `SESSION_STATE.md` there because harness runtime syncs it automatically
 
 Reference rule:
 

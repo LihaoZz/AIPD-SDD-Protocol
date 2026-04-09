@@ -45,6 +45,12 @@ def main() -> int:
     elif mb_id == "fb1-mb4":
         src_file.write_text("STILL_FAILING\n", encoding="utf-8")
         message = "Attempt still fails verification."
+    elif mb_id == "fb1-mb5":
+        message = (
+            "Blocked by contract conflict, so I did not edit `src/app.py`.\n\n"
+            "This should be routed as a `spec_gap` before implementation.\n\n"
+            "Changed files: none."
+        )
     else:
         message = "Unknown MB."
 
