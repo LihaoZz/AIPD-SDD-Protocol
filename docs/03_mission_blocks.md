@@ -72,6 +72,35 @@ Conditional rule:
 - use `input_artifacts: none` when there is no upstream input dependency
 - require `input_ready_check` only when real upstream inputs exist
 
+## MB Concurrency Contract
+
+Machine-runnable MBs may declare optional `concurrency` metadata in their machine
+spec.
+
+Supported fields:
+
+- `concurrency_group`
+- `exclusive_touch`
+- `shared_read_artifacts`
+- `shared_write_artifacts`
+- `blocked_by_mbs`
+- `can_run_parallel`
+- `parallel_safe_reason`
+
+Execution rule:
+
+- the same `mb_id` must not run concurrently
+- an unresolved `blocked_by_mbs` dependency blocks `attempt_start`
+- an existing `concurrency_group` lock blocks `attempt_start`
+- an overlapping `exclusive_touch` lock blocks `attempt_start`
+- an overlapping `shared_write_artifacts` lock blocks `attempt_start`
+- lock conflicts must produce a start gate outcome with `defer_retry`
+- dependency conflicts must produce a start gate outcome with `release_and_wait_input`
+- no lock or dependency conflict may start Codex or create an attempt directory
+- acquired locks must be released after `attempt_finish` or after a pre-execution block
+
+If `exclusive_touch` is omitted, the runner derives it from `allowed_touch`.
+
 Low-frequency details belong in `Optional Appendix`, not in the main body.
 
 ## External UI Input Rule
@@ -277,6 +306,34 @@ It is complete only when all required evidence exists:
 
 - 没有上游输入依赖时，`input_artifacts` 固定写 `none`
 - 只有存在真实输入依赖时，才要求 `input_ready_check`
+
+### MB 并发契约
+
+可由机器运行的 MB，可以在 machine spec 中声明可选的 `concurrency` 元数据。
+
+支持字段：
+
+- `concurrency_group`
+- `exclusive_touch`
+- `shared_read_artifacts`
+- `shared_write_artifacts`
+- `blocked_by_mbs`
+- `can_run_parallel`
+- `parallel_safe_reason`
+
+执行规则：
+
+- 同一个 `mb_id` 不得并发运行
+- 未完成的 `blocked_by_mbs` 依赖会阻塞 `attempt_start`
+- 已存在的 `concurrency_group` 锁会阻塞 `attempt_start`
+- 重叠的 `exclusive_touch` 锁会阻塞 `attempt_start`
+- 重叠的 `shared_write_artifacts` 锁会阻塞 `attempt_start`
+- 锁冲突必须产出 action 为 `defer_retry` 的 start gate outcome
+- 依赖冲突必须产出 action 为 `release_and_wait_input` 的 start gate outcome
+- 任何锁冲突或依赖冲突都不得启动 Codex，也不得创建 attempt 目录
+- 已获取的锁必须在 `attempt_finish` 后释放，或在执行前阻塞时释放
+
+如果没有显式声明 `exclusive_touch`，runner 从 `allowed_touch` 派生。
 
 低频信息应进入 `Optional Appendix`。
 

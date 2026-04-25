@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "gate": "attempt_finish",
+  "mb_id": "fb1-mb4",
+  "attempt_id": "attempt-003",
+  "aipd_decision": {
+    "status": "routed_to_recovery",
+    "issue_type": "implementation_bug",
+    "route_to": "recovery_coordinator",
+    "next_action": "route_to_recovery"
+  },
+  "symphony_instruction": {
+    "action": "stop_and_route_recovery",
+    "may_start_codex": false,
+    "retryable": false,
+    "retry_after_ms": null
+  },
+  "reason": "Verification failed after the allowed semantic retry limit.",
+  "evidence_refs": [
+    "runtime/attempts/fb1-mb4/attempt-003/verification_report.json",
+    "runtime/memory/failure_log.json"
+  ],
+  "state_ref": "runtime/state/fb1-mb4.state.json"
+}

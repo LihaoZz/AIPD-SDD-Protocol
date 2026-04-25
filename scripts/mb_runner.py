@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -15,6 +16,7 @@ from harness_common import (
     attempt_dir,
     initialize_runtime_memory,
     local_timezone_name,
+    mb_preflight_path,
     mission_machine_spec_path,
     mission_markdown_path,
     read_json,
@@ -22,6 +24,7 @@ from harness_common import (
     resolve_path,
     runtime_state_path,
     local_timestamp,
+    validate_with_schema,
     write_json,
 )
 from hook_runtime import run_post_tool_hook, run_pre_tool_hook, run_stop_hook
@@ -257,6 +260,577 @@ def run_codex_cli(
     }
 
 
+def gate_outcome_archive_path(project_root: Path, mb_id: str, gate: str) -> Path:
+    return project_root / "runtime" / "gate_outcomes" / mb_id / f"{gate}.json"
+
+
+def attempt_gate_outcome_path(current_attempt_dir: Path, gate: str) -> Path:
+    return current_attempt_dir / f"{gate}_gate_outcome.json"
+
+
+def build_gate_outcome(
+    gate: str,
+    mb_id: str,
+    attempt_id: str | None,
+    status: str,
+    issue_type: str | None,
+    route_to: str | None,
+    next_action: str,
+    action: str,
+    may_start_codex: bool,
+    retryable: bool,
+    retry_after_ms: int | None,
+    reason: str,
+    evidence_refs: list[str],
+    state_ref: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "gate": gate,
+        "mb_id": mb_id,
+        "attempt_id": attempt_id,
+        "aipd_decision": {
+            "status": status,
+            "issue_type": issue_type,
+            "route_to": route_to,
+            "next_action": next_action,
+        },
+        "symphony_instruction": {
+            "action": action,
+            "may_start_codex": may_start_codex,
+            "retryable": retryable,
+            "retry_after_ms": retry_after_ms,
+        },
+        "reason": reason,
+        "evidence_refs": evidence_refs,
+        "state_ref": state_ref,
+    }
+
+
+def write_gate_outcome(path: Path, outcome: dict[str, Any]) -> None:
+    errors = validate_with_schema(outcome, "aipd-gate-outcome.schema.json")
+    if errors:
+        raise ValueError("; ".join(errors))
+    write_json(path, outcome)
+
+
+def issue_route(issue_type: str | None) -> str | None:
+    return {
+        "spec_gap": "spec_architect",
+        "implementation_bug": "builder",
+        "quality_evidence_gap": "builder",
+        "state_drift": "recovery_coordinator",
+        "environment_issue": "recovery_coordinator",
+        "review_context_gap": "current_scene_lead",
+    }.get(issue_type)
+
+
+def record_attempt_start_rejection(
+    project_root: Path,
+    mb_id: str,
+    issue_type: str,
+    route_to: str,
+    next_action: str,
+    action: str,
+    reason: str,
+) -> None:
+    retryable = action == "defer_retry"
+    outcome = build_gate_outcome(
+        gate="attempt_start",
+        mb_id=mb_id,
+        attempt_id=None,
+        status="blocked",
+        issue_type=issue_type,
+        route_to=route_to,
+        next_action=next_action,
+        action=action,
+        may_start_codex=False,
+        retryable=retryable,
+        retry_after_ms=1000 if retryable else None,
+        reason=reason,
+        evidence_refs=[str(mb_preflight_path(project_root, mb_id).relative_to(project_root))],
+        state_ref=str(runtime_state_path(project_root, mb_id).relative_to(project_root)),
+    )
+    write_gate_outcome(gate_outcome_archive_path(project_root, mb_id, "attempt_start"), outcome)
+
+
+def lock_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def lock_path(project_root: Path, kind: str, name: str) -> Path:
+    return project_root / "runtime" / "locks" / kind / f"{name}.lock"
+
+
+def concurrency_config(spec: dict[str, Any]) -> dict[str, Any]:
+    config = spec.get("concurrency") or {}
+    return {
+        "concurrency_group": config.get("concurrency_group"),
+        "exclusive_touch": config.get("exclusive_touch", spec.get("allowed_touch", [])),
+        "shared_read_artifacts": config.get("shared_read_artifacts", []),
+        "shared_write_artifacts": config.get("shared_write_artifacts", []),
+        "blocked_by_mbs": config.get("blocked_by_mbs", []),
+        "can_run_parallel": config.get("can_run_parallel", False),
+        "parallel_safe_reason": config.get("parallel_safe_reason", "not_declared"),
+    }
+
+
+def dependency_blocker(project_root: Path, spec: dict[str, Any]) -> str | None:
+    for blocked_by_mb in concurrency_config(spec)["blocked_by_mbs"]:
+        state_path = runtime_state_path(project_root, blocked_by_mb)
+        if not state_path.is_file():
+            return f"blocked_by_mbs dependency has no passed runtime state: {blocked_by_mb}"
+        state = read_json(state_path)
+        if state.get("status") != "passed":
+            return f"blocked_by_mbs dependency is not passed: {blocked_by_mb}"
+    return None
+
+
+def desired_lock_paths(project_root: Path, spec: dict[str, Any]) -> list[Path]:
+    config = concurrency_config(spec)
+    paths = [lock_path(project_root, "mb", spec["mb_id"])]
+    if config["concurrency_group"]:
+        paths.append(lock_path(project_root, "concurrency_group", lock_token(str(config["concurrency_group"]))))
+    for rel_path in config["exclusive_touch"]:
+        paths.append(lock_path(project_root, "touch", lock_token(str(rel_path))))
+    for rel_path in config["shared_write_artifacts"]:
+        paths.append(lock_path(project_root, "artifact", lock_token(str(rel_path))))
+    return paths
+
+
+def acquire_locks(project_root: Path, spec: dict[str, Any], attempt_id: str) -> tuple[list[Path], str | None]:
+    acquired: list[Path] = []
+    for path in desired_lock_paths(project_root, spec):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with path.open("x", encoding="utf-8") as handle:
+                json.dump(
+                    {
+                        "schema_version": "1.0",
+                        "mb_id": spec["mb_id"],
+                        "attempt_id": attempt_id,
+                        "created_at": local_timestamp(),
+                    },
+                    handle,
+                    ensure_ascii=True,
+                    indent=2,
+                )
+                handle.write("\n")
+            acquired.append(path)
+        except FileExistsError:
+            release_locks(acquired)
+            return [], str(path.relative_to(project_root))
+    return acquired, None
+
+
+def release_locks(paths: list[Path]) -> None:
+    for path in reversed(paths):
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            continue
+
+
+def attempt_start(
+    project_root: Path,
+    mb_id: str,
+    spec: dict[str, Any],
+    state: dict[str, Any],
+    codex_command: str,
+    model: str | None,
+    json_output: bool,
+) -> dict[str, Any]:
+    blocker = dependency_blocker(project_root, spec)
+    if blocker is not None:
+        record_attempt_start_rejection(
+            project_root,
+            mb_id,
+            "review_context_gap",
+            "current_scene_lead",
+            "wait_for_blocking_mb",
+            "release_and_wait_input",
+            blocker,
+        )
+        print(json.dumps({"status": "blocked", "reason": blocker}, ensure_ascii=True, indent=2))
+        return {"status": "stop", "exit_code": 1}
+
+    attempt_id = next_attempt_id(project_root, mb_id)
+    locks, lock_conflict = acquire_locks(project_root, spec, attempt_id)
+    if lock_conflict is not None:
+        record_attempt_start_rejection(
+            project_root,
+            mb_id,
+            "environment_issue",
+            "recovery_coordinator",
+            "defer_retry",
+            "defer_retry",
+            f"Concurrency lock is already held: {lock_conflict}",
+        )
+        print(json.dumps({"status": "blocked", "reason": f"lock held: {lock_conflict}"}, ensure_ascii=True, indent=2))
+        return {"status": "stop", "exit_code": 1}
+
+    current_attempt_dir = attempt_dir(project_root, mb_id, attempt_id)
+    current_attempt_dir.mkdir(parents=True, exist_ok=True)
+
+    memory_context = lookup_memory_context(project_root, spec, state)
+    prompt = build_prompt(project_root, spec, state, memory_context)
+    prompt_path = current_attempt_dir / "prompt.md"
+    prompt_path.write_text(prompt, encoding="utf-8")
+
+    before = snapshot_workspace(project_root)
+    before_path = current_attempt_dir / "before_snapshot.json"
+    write_json(before_path, before)
+
+    state.update(
+        {
+            "status": "running",
+            "last_attempt_id": attempt_id,
+            "next_action": "await_codex_result",
+        }
+    )
+    write_state(project_root, state)
+
+    start_outcome = build_gate_outcome(
+        gate="attempt_start",
+        mb_id=mb_id,
+        attempt_id=attempt_id,
+        status="authorized",
+        issue_type=None,
+        route_to=None,
+        next_action="start_codex",
+        action="dispatch_codex",
+        may_start_codex=True,
+        retryable=False,
+        retry_after_ms=None,
+        reason="MB preflight passed, runtime state is ready, and attempt execution is authorized.",
+        evidence_refs=[
+            str(mb_preflight_path(project_root, mb_id).relative_to(project_root)),
+            str(before_path.relative_to(project_root)),
+        ],
+        state_ref=str(runtime_state_path(project_root, mb_id).relative_to(project_root)),
+    )
+    write_gate_outcome(attempt_gate_outcome_path(current_attempt_dir, "attempt_start"), start_outcome)
+
+    command = build_codex_exec_command(project_root, current_attempt_dir, codex_command, model, json_output)
+    pre_hook = run_pre_tool_hook(project_root, spec, current_attempt_dir, command)
+    if pre_hook["status"] != "pass":
+        state.update(
+            {
+                "status": "blocked",
+                "last_failure_reason": "hook_pre_block",
+                "review_required": False,
+                "next_action": "inspect_pre_tool_hook",
+            }
+        )
+        write_state(project_root, state)
+        sync_session_state(project_root, spec["parent_fb_id"], state)
+        append_failure_log(
+            project_root,
+            {
+                "mb_id": mb_id,
+                "parent_fb_id": spec["parent_fb_id"],
+                "attempt_id": attempt_id,
+                "failure_type": "hook_pre_block",
+                "condition": pre_hook["summary"],
+                "attempted_fix": "execution blocked before Codex invocation",
+                "result": "blocked",
+            },
+        )
+        print(json.dumps(state, ensure_ascii=True, indent=2))
+        release_locks(locks)
+        return {"status": "stop", "exit_code": 1}
+
+    return {
+        "status": "ready",
+        "attempt_id": attempt_id,
+        "attempt_dir": current_attempt_dir,
+        "before": before,
+        "command": command,
+        "prompt": prompt,
+        "locks": locks,
+    }
+
+
+def record_attempt_finish_outcome(
+    project_root: Path,
+    spec: dict[str, Any],
+    attempt_id: str,
+    current_attempt_dir: Path,
+    status: str,
+    issue_type: str | None,
+    route_to: str | None,
+    next_action: str,
+    action: str,
+    retryable: bool,
+    retry_after_ms: int | None,
+    reason: str,
+    evidence_refs: list[str],
+) -> None:
+    outcome = build_gate_outcome(
+        gate="attempt_finish",
+        mb_id=spec["mb_id"],
+        attempt_id=attempt_id,
+        status=status,
+        issue_type=issue_type,
+        route_to=route_to,
+        next_action=next_action,
+        action=action,
+        may_start_codex=False,
+        retryable=retryable,
+        retry_after_ms=retry_after_ms,
+        reason=reason,
+        evidence_refs=evidence_refs,
+        state_ref=str(runtime_state_path(project_root, spec["mb_id"]).relative_to(project_root)),
+    )
+    write_gate_outcome(attempt_gate_outcome_path(current_attempt_dir, "attempt_finish"), outcome)
+
+
+def attempt_finish(
+    project_root: Path,
+    spec: dict[str, Any],
+    state: dict[str, Any],
+    attempt_id: str,
+    current_attempt_dir: Path,
+    before: dict[str, Any],
+    execution: dict[str, Any],
+    autonomy_level: str,
+) -> dict[str, Any]:
+    mb_id = spec["mb_id"]
+    after = snapshot_workspace(project_root)
+    after_path = current_attempt_dir / "after_snapshot.json"
+    write_json(after_path, after)
+
+    changes = changed_files(before, after)
+    write_json(current_attempt_dir / "changed_files.json", changes)
+    run_post_tool_hook(spec, current_attempt_dir, execution, changes)
+    scope_result = evaluate_scope(changes, spec["allowed_touch"], spec["forbidden_touch"])
+    scope_path = current_attempt_dir / "scope_guard.json"
+    write_json(scope_path, scope_result)
+
+    if scope_result["status"] != "pass":
+        state.update(
+            {
+                "status": "routed_to_recovery",
+                "retry_count": state["retry_count"] + 1,
+                "last_failure_reason": "scope_violation",
+                "last_verification_report_path": None,
+                "last_verification_digest": None,
+                "review_required": False,
+                "next_action": "route_to_recovery",
+            }
+        )
+        write_state(project_root, state)
+        sync_session_state(project_root, spec["parent_fb_id"], state)
+        append_failure_log(
+            project_root,
+            {
+                "mb_id": mb_id,
+                "parent_fb_id": spec["parent_fb_id"],
+                "attempt_id": attempt_id,
+                "failure_type": "scope_violation",
+                "condition": scope_result["summary"],
+                "attempted_fix": summarize_output(current_attempt_dir / "last_message.txt"),
+                "result": "routed_to_recovery",
+            },
+        )
+        run_stop_hook(spec, current_attempt_dir, "routed_to_recovery", None)
+        record_attempt_finish_outcome(
+            project_root,
+            spec,
+            attempt_id,
+            current_attempt_dir,
+            "routed_to_recovery",
+            "state_drift",
+            "recovery_coordinator",
+            "route_to_recovery",
+            "stop_and_route_recovery",
+            False,
+            None,
+            scope_result["summary"],
+            [str(scope_path.relative_to(project_root))],
+        )
+        print(json.dumps(state, ensure_ascii=True, indent=2))
+        return {"status": "stop", "exit_code": 1}
+
+    assistant_message = summarize_output(current_attempt_dir / "last_message.txt")
+    classified_failure = classify_execution_failure(assistant_message, changes)
+    if classified_failure is not None:
+        issue_type = classified_failure["failure_type"]
+        route_to = issue_route(issue_type)
+        action = "stop_and_route_owner" if issue_type == "spec_gap" else "stop_and_route_recovery"
+        status = "routed_to_owner" if issue_type == "spec_gap" else "routed_to_recovery"
+        state.update(
+            {
+                "status": "routed_to_recovery",
+                "last_failure_reason": issue_type,
+                "review_required": False,
+                "next_action": "route_to_recovery",
+            }
+        )
+        write_state(project_root, state)
+        sync_session_state(project_root, spec["parent_fb_id"], state)
+        append_failure_log(
+            project_root,
+            {
+                "mb_id": mb_id,
+                "parent_fb_id": spec["parent_fb_id"],
+                "attempt_id": attempt_id,
+                "failure_type": issue_type,
+                "condition": classified_failure["condition"],
+                "attempted_fix": assistant_message,
+                "result": "routed_to_recovery",
+            },
+        )
+        run_stop_hook(spec, current_attempt_dir, "routed_to_recovery", None)
+        record_attempt_finish_outcome(
+            project_root,
+            spec,
+            attempt_id,
+            current_attempt_dir,
+            status,
+            issue_type,
+            route_to,
+            "route_to_recovery",
+            action,
+            False,
+            None,
+            classified_failure["condition"],
+            [str(current_attempt_dir.joinpath("last_message.txt").relative_to(project_root))],
+        )
+        print(json.dumps(state, ensure_ascii=True, indent=2))
+        return {"status": "stop", "exit_code": 1}
+
+    state.update({"status": "verifying", "next_action": "run_verification"})
+    write_state(project_root, state)
+
+    report = run_verification(project_root, spec, attempt_id, changes, scope_result)
+    report_path = current_attempt_dir / "verification_report.json"
+    write_json(report_path, report)
+
+    if report["result"] == "pass":
+        stop_hook = run_stop_hook(spec, current_attempt_dir, "passed", report_path)
+        if stop_hook["status"] != "pass":
+            state.update(
+                {
+                    "status": "blocked",
+                    "last_failure_reason": "stop_hook_blocked",
+                    "review_required": False,
+                    "next_action": "inspect_stop_hook",
+                }
+            )
+            write_state(project_root, state)
+            sync_session_state(project_root, spec["parent_fb_id"], state)
+            append_failure_log(
+                project_root,
+                {
+                    "mb_id": mb_id,
+                    "parent_fb_id": spec["parent_fb_id"],
+                    "attempt_id": attempt_id,
+                    "failure_type": "stop_hook_blocked",
+                    "condition": stop_hook["summary"],
+                    "attempted_fix": summarize_output(current_attempt_dir / "last_message.txt"),
+                    "result": "blocked",
+                },
+            )
+            print(json.dumps(state, ensure_ascii=True, indent=2))
+            return {"status": "stop", "exit_code": 1}
+        next_action = "handoff_to_review" if autonomy_level in {"L1_human_approval", "L2_auto_with_review"} else "close_mb"
+        state.update(
+            {
+                "status": "passed",
+                "last_verification_report_path": str(report_path.relative_to(project_root)),
+                "last_verification_digest": build_verification_digest(report),
+                "last_failure_reason": None,
+                "review_required": autonomy_level in {"L1_human_approval", "L2_auto_with_review"},
+                "next_action": next_action,
+            }
+        )
+        write_state(project_root, state)
+        sync_session_state(project_root, spec["parent_fb_id"], state)
+        append_project_memory(project_root, spec["parent_fb_id"], mb_id, report)
+        record_attempt_finish_outcome(
+            project_root,
+            spec,
+            attempt_id,
+            current_attempt_dir,
+            "passed",
+            None,
+            None,
+            next_action,
+            "release_to_review" if state["review_required"] else "close_mb",
+            False,
+            None,
+            report["summary"],
+            [str(report_path.relative_to(project_root))],
+        )
+        print(json.dumps(state, ensure_ascii=True, indent=2))
+        return {"status": "stop", "exit_code": 0}
+
+    state["retry_count"] += 1
+    state["last_verification_report_path"] = str(report_path.relative_to(project_root))
+    state["last_verification_digest"] = build_verification_digest(report)
+    state["last_failure_reason"] = report["summary"]
+    state["review_required"] = False
+    retry_limit_reached = state["retry_count"] >= spec["retry_policy"]["max_retries"]
+    append_failure_log(
+        project_root,
+        {
+            "mb_id": mb_id,
+            "parent_fb_id": spec["parent_fb_id"],
+            "attempt_id": attempt_id,
+            "failure_type": "verification_failed",
+            "condition": report["summary"],
+            "attempted_fix": summarize_output(current_attempt_dir / "last_message.txt"),
+            "result": "routed_to_recovery" if retry_limit_reached else "retry",
+        },
+    )
+
+    if retry_limit_reached:
+        state["status"] = "routed_to_recovery"
+        state["next_action"] = "route_to_recovery"
+        write_state(project_root, state)
+        sync_session_state(project_root, spec["parent_fb_id"], state)
+        run_stop_hook(spec, current_attempt_dir, "routed_to_recovery", report_path)
+        record_attempt_finish_outcome(
+            project_root,
+            spec,
+            attempt_id,
+            current_attempt_dir,
+            "routed_to_recovery",
+            "implementation_bug",
+            "recovery_coordinator",
+            "route_to_recovery",
+            "stop_and_route_recovery",
+            False,
+            None,
+            report["summary"],
+            [str(report_path.relative_to(project_root))],
+        )
+        print(json.dumps(state, ensure_ascii=True, indent=2))
+        return {"status": "stop", "exit_code": 1}
+
+    state["status"] = "failed"
+    state["next_action"] = "retry"
+    write_state(project_root, state)
+    sync_session_state(project_root, spec["parent_fb_id"], state)
+    record_attempt_finish_outcome(
+        project_root,
+        spec,
+        attempt_id,
+        current_attempt_dir,
+        "retry_allowed",
+        "implementation_bug",
+        "builder",
+        "retry_with_verification_feedback",
+        "schedule_semantic_retry",
+        True,
+        0,
+        report["summary"],
+        [str(report_path.relative_to(project_root))],
+    )
+    return {"status": "retry", "exit_code": None}
+
+
 def run_once(
     project_root: Path,
     mb_id: str,
@@ -305,221 +879,59 @@ def run_once(
         )
         write_state(project_root, state)
         sync_session_state(project_root, spec["parent_fb_id"], state)
+        record_attempt_start_rejection(
+            project_root,
+            mb_id,
+            "review_context_gap",
+            "current_scene_lead",
+            "await_human_approval",
+            "pause_wait_human",
+            "Human approval is required before this L1 MB can start.",
+        )
         print(json.dumps(state, ensure_ascii=True, indent=2))
         return 1
 
     while True:
-        attempt_id = next_attempt_id(project_root, mb_id)
-        current_attempt_dir = attempt_dir(project_root, mb_id, attempt_id)
-        current_attempt_dir.mkdir(parents=True, exist_ok=True)
-
-        memory_context = lookup_memory_context(project_root, spec, state)
-        prompt = build_prompt(project_root, spec, state, memory_context)
-        prompt_path = current_attempt_dir / "prompt.md"
-        prompt_path.write_text(prompt, encoding="utf-8")
-
-        before = snapshot_workspace(project_root)
-        before_path = current_attempt_dir / "before_snapshot.json"
-        write_json(before_path, before)
-
-        state.update(
-            {
-                "status": "running",
-                "last_attempt_id": attempt_id,
-                "next_action": "await_codex_result",
-            }
-        )
-        write_state(project_root, state)
-
-        command = build_codex_exec_command(project_root, current_attempt_dir, codex_command, model, json_output)
-        pre_hook = run_pre_tool_hook(project_root, spec, current_attempt_dir, command)
-        if pre_hook["status"] != "pass":
-            state.update(
-                {
-                    "status": "blocked",
-                    "last_failure_reason": "hook_pre_block",
-                    "review_required": False,
-                    "next_action": "inspect_pre_tool_hook",
-                }
-            )
-            write_state(project_root, state)
-            sync_session_state(project_root, spec["parent_fb_id"], state)
-            append_failure_log(
-                project_root,
-                {
-                    "mb_id": mb_id,
-                    "parent_fb_id": spec["parent_fb_id"],
-                    "attempt_id": attempt_id,
-                    "failure_type": "hook_pre_block",
-                    "condition": pre_hook["summary"],
-                    "attempted_fix": "execution blocked before Codex invocation",
-                    "result": "blocked",
-                },
-            )
-            print(json.dumps(state, ensure_ascii=True, indent=2))
-            return 1
-
-        execution = run_codex_cli(
-            command,
-            prompt,
-            current_attempt_dir,
-            dry_run,
-            stream_output,
-        )
-        write_json(current_attempt_dir / "execution_result.json", execution)
-        (current_attempt_dir / "raw_output.txt").write_text(execution["stdout"], encoding="utf-8")
-        (current_attempt_dir / "raw_error.txt").write_text(execution["stderr"], encoding="utf-8")
-
-        after = snapshot_workspace(project_root)
-        after_path = current_attempt_dir / "after_snapshot.json"
-        write_json(after_path, after)
-
-        changes = changed_files(before, after)
-        write_json(current_attempt_dir / "changed_files.json", changes)
-        run_post_tool_hook(spec, current_attempt_dir, execution, changes)
-        scope_result = evaluate_scope(changes, spec["allowed_touch"], spec["forbidden_touch"])
-        write_json(current_attempt_dir / "scope_guard.json", scope_result)
-
-        if scope_result["status"] != "pass":
-            state.update(
-                {
-                    "status": "routed_to_recovery",
-                    "retry_count": state["retry_count"] + 1,
-                    "last_failure_reason": "scope_violation",
-                    "last_verification_report_path": None,
-                    "last_verification_digest": None,
-                    "review_required": False,
-                    "next_action": "route_to_recovery",
-                }
-            )
-            write_state(project_root, state)
-            sync_session_state(project_root, spec["parent_fb_id"], state)
-            append_failure_log(
-                project_root,
-                {
-                    "mb_id": mb_id,
-                    "parent_fb_id": spec["parent_fb_id"],
-                    "attempt_id": attempt_id,
-                    "failure_type": "scope_violation",
-                    "condition": scope_result["summary"],
-                    "attempted_fix": summarize_output(current_attempt_dir / "last_message.txt"),
-                    "result": "routed_to_recovery",
-                },
-            )
-            run_stop_hook(spec, current_attempt_dir, "routed_to_recovery", None)
-            print(json.dumps(state, ensure_ascii=True, indent=2))
-            return 1
-
-        assistant_message = summarize_output(current_attempt_dir / "last_message.txt")
-        classified_failure = classify_execution_failure(assistant_message, changes)
-        if classified_failure is not None:
-            state.update(
-                {
-                    "status": "routed_to_recovery",
-                    "last_failure_reason": classified_failure["failure_type"],
-                    "review_required": False,
-                    "next_action": "route_to_recovery",
-                }
-            )
-            write_state(project_root, state)
-            sync_session_state(project_root, spec["parent_fb_id"], state)
-            append_failure_log(
-                project_root,
-                {
-                    "mb_id": mb_id,
-                    "parent_fb_id": spec["parent_fb_id"],
-                    "attempt_id": attempt_id,
-                    "failure_type": classified_failure["failure_type"],
-                    "condition": classified_failure["condition"],
-                    "attempted_fix": assistant_message,
-                    "result": "routed_to_recovery",
-                },
-            )
-            run_stop_hook(spec, current_attempt_dir, "routed_to_recovery", None)
-            print(json.dumps(state, ensure_ascii=True, indent=2))
-            return 1
-
-        state.update({"status": "verifying", "next_action": "run_verification"})
-        write_state(project_root, state)
-
-        report = run_verification(project_root, spec, attempt_id, changes, scope_result)
-        report_path = current_attempt_dir / "verification_report.json"
-        write_json(report_path, report)
-
-        if report["result"] == "pass":
-            stop_hook = run_stop_hook(spec, current_attempt_dir, "passed", report_path)
-            if stop_hook["status"] != "pass":
-                state.update(
-                    {
-                        "status": "blocked",
-                        "last_failure_reason": "stop_hook_blocked",
-                        "review_required": False,
-                        "next_action": "inspect_stop_hook",
-                    }
-                )
-                write_state(project_root, state)
-                sync_session_state(project_root, spec["parent_fb_id"], state)
-                append_failure_log(
-                    project_root,
-                    {
-                        "mb_id": mb_id,
-                        "parent_fb_id": spec["parent_fb_id"],
-                        "attempt_id": attempt_id,
-                        "failure_type": "stop_hook_blocked",
-                        "condition": stop_hook["summary"],
-                        "attempted_fix": summarize_output(current_attempt_dir / "last_message.txt"),
-                        "result": "blocked",
-                    },
-                )
-                print(json.dumps(state, ensure_ascii=True, indent=2))
-                return 1
-            state.update(
-                {
-                    "status": "passed",
-                    "last_verification_report_path": str(report_path.relative_to(project_root)),
-                    "last_verification_digest": build_verification_digest(report),
-                    "last_failure_reason": None,
-                    "review_required": autonomy_level in {"L1_human_approval", "L2_auto_with_review"},
-                    "next_action": "handoff_to_review" if autonomy_level in {"L1_human_approval", "L2_auto_with_review"} else "close_mb",
-                }
-            )
-            write_state(project_root, state)
-            sync_session_state(project_root, spec["parent_fb_id"], state)
-            append_project_memory(project_root, spec["parent_fb_id"], mb_id, report)
-            print(json.dumps(state, ensure_ascii=True, indent=2))
-            return 0
-
-        state["retry_count"] += 1
-        state["last_verification_report_path"] = str(report_path.relative_to(project_root))
-        state["last_verification_digest"] = build_verification_digest(report)
-        state["last_failure_reason"] = report["summary"]
-        state["review_required"] = False
-        append_failure_log(
+        start_result = attempt_start(
             project_root,
-            {
-                "mb_id": mb_id,
-                "parent_fb_id": spec["parent_fb_id"],
-                "attempt_id": attempt_id,
-                "failure_type": "verification_failed",
-                "condition": report["summary"],
-                "attempted_fix": summarize_output(current_attempt_dir / "last_message.txt"),
-                "result": "retry" if state["retry_count"] < spec["retry_policy"]["max_retries"] else "routed_to_recovery",
-            },
+            mb_id,
+            spec,
+            state,
+            codex_command,
+            model,
+            json_output,
         )
+        if start_result["status"] == "stop":
+            return int(start_result["exit_code"])
 
-        if state["retry_count"] >= spec["retry_policy"]["max_retries"]:
-            state["status"] = "routed_to_recovery"
-            state["next_action"] = "route_to_recovery"
-            write_state(project_root, state)
-            sync_session_state(project_root, spec["parent_fb_id"], state)
-            run_stop_hook(spec, current_attempt_dir, "routed_to_recovery", report_path)
-            print(json.dumps(state, ensure_ascii=True, indent=2))
-            return 1
+        current_attempt_dir = start_result["attempt_dir"]
+        try:
+            execution = run_codex_cli(
+                start_result["command"],
+                start_result["prompt"],
+                current_attempt_dir,
+                dry_run,
+                stream_output,
+            )
+            write_json(current_attempt_dir / "execution_result.json", execution)
+            (current_attempt_dir / "raw_output.txt").write_text(execution["stdout"], encoding="utf-8")
+            (current_attempt_dir / "raw_error.txt").write_text(execution["stderr"], encoding="utf-8")
 
-        state["status"] = "failed"
-        state["next_action"] = "retry"
-        write_state(project_root, state)
-        sync_session_state(project_root, spec["parent_fb_id"], state)
+            finish_result = attempt_finish(
+                project_root,
+                spec,
+                state,
+                start_result["attempt_id"],
+                current_attempt_dir,
+                start_result["before"],
+                execution,
+                autonomy_level,
+            )
+        finally:
+            release_locks(start_result["locks"])
+        if finish_result["status"] == "retry":
+            continue
+        return int(finish_result["exit_code"])
 
 
 def main() -> int:

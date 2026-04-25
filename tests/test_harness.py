@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -56,6 +57,14 @@ class HarnessTestCase(unittest.TestCase):
     def read_json(self, relative_path: str) -> dict:
         return json.loads((self.project_root / relative_path).read_text(encoding="utf-8"))
 
+    def write_lock(self, kind: str, name: str) -> None:
+        path = self.project_root / "runtime" / "locks" / kind / f"{name}.lock"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"held_by": "test"}), encoding="utf-8")
+
+    def lock_token(self, raw: str) -> str:
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
     def test_validate_mb_spec_passes(self) -> None:
         self.run_python("validate_mb_spec.py", str(self.project_root / "missions" / "fb1-mb1.machine.json"))
 
@@ -66,6 +75,38 @@ class HarnessTestCase(unittest.TestCase):
         spec_path.write_text(json.dumps(spec), encoding="utf-8")
         completed = self.run_python("validate_mb_spec.py", str(spec_path), expected=1)
         self.assertIn("allowed_touch", completed.stdout)
+
+    def test_gate_outcome_examples_validate(self) -> None:
+        examples_dir = REPO_ROOT / "schemas" / "examples" / "aipd-gate-outcome"
+        for path in sorted(examples_dir.glob("*.json")):
+            self.run_python("sdd_guard.py", "check-gate-outcome", str(path))
+
+    def test_gate_outcome_rejects_unknown_symphony_action(self) -> None:
+        example_path = REPO_ROOT / "schemas" / "examples" / "aipd-gate-outcome" / "start-pass.json"
+        gate_outcome = json.loads(example_path.read_text(encoding="utf-8"))
+        gate_outcome["symphony_instruction"]["action"] = "invent_action"
+        broken_path = self.project_root / "runtime" / "broken-gate-outcome.json"
+        broken_path.parent.mkdir(parents=True, exist_ok=True)
+        broken_path.write_text(json.dumps(gate_outcome), encoding="utf-8")
+        completed = self.run_python("sdd_guard.py", "check-gate-outcome", str(broken_path), expected=1)
+        self.assertIn("invent_action", completed.stdout)
+
+    def test_gate_outcome_rejects_malformed_json(self) -> None:
+        broken_path = self.project_root / "runtime" / "malformed-gate-outcome.json"
+        broken_path.parent.mkdir(parents=True, exist_ok=True)
+        broken_path.write_text('{"gate": "attempt_start"', encoding="utf-8")
+        completed = self.run_python("sdd_guard.py", "check-gate-outcome", str(broken_path), expected=1)
+        self.assertIn("not valid JSON", completed.stdout)
+
+    def test_gate_outcome_rejects_non_dispatch_codex_start(self) -> None:
+        example_path = REPO_ROOT / "schemas" / "examples" / "aipd-gate-outcome" / "start-reject.json"
+        gate_outcome = json.loads(example_path.read_text(encoding="utf-8"))
+        gate_outcome["symphony_instruction"]["may_start_codex"] = True
+        broken_path = self.project_root / "runtime" / "unsafe-gate-outcome.json"
+        broken_path.parent.mkdir(parents=True, exist_ok=True)
+        broken_path.write_text(json.dumps(gate_outcome), encoding="utf-8")
+        completed = self.run_python("sdd_guard.py", "check-gate-outcome", str(broken_path), expected=1)
+        self.assertIn("dispatch_codex", completed.stdout)
 
     def test_validate_mission_rejects_runtime_managed_session_state_update(self) -> None:
         mission_path = self.project_root / "missions" / "broken-session-state.md"
@@ -180,6 +221,12 @@ class HarnessTestCase(unittest.TestCase):
         self.assertTrue((self.project_root / "runtime" / "attempts" / "fb1-mb1" / "attempt-001" / "pre_tool_hook.json").exists())
         self.assertTrue((self.project_root / "runtime" / "attempts" / "fb1-mb1" / "attempt-001" / "post_tool_hook.json").exists())
         self.assertTrue((self.project_root / "runtime" / "attempts" / "fb1-mb1" / "attempt-001" / "stop_hook.json").exists())
+        start_outcome = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_start_gate_outcome.json")
+        finish_outcome = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_finish_gate_outcome.json")
+        self.assertEqual(start_outcome["symphony_instruction"]["action"], "dispatch_codex")
+        self.assertEqual(finish_outcome["symphony_instruction"]["action"], "release_to_review")
+        locks_root = self.project_root / "runtime" / "locks"
+        self.assertFalse(locks_root.exists() and list(locks_root.rglob("*.lock")))
 
     def test_mb_runner_scope_violation_routes_recovery(self) -> None:
         self.run_mb("fb1-mb2", expected=1)
@@ -187,6 +234,10 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(state["status"], "routed_to_recovery")
         self.assertEqual(state["last_failure_reason"], "scope_violation")
         self.assertFalse((self.project_root / "runtime" / "attempts" / "fb1-mb2" / "attempt-001" / "verification_report.json").exists())
+        finish_outcome = self.read_json("runtime/attempts/fb1-mb2/attempt-001/attempt_finish_gate_outcome.json")
+        self.assertEqual(finish_outcome["aipd_decision"]["issue_type"], "state_drift")
+        self.assertEqual(finish_outcome["aipd_decision"]["route_to"], "recovery_coordinator")
+        self.assertEqual(finish_outcome["symphony_instruction"]["action"], "stop_and_route_recovery")
         failure_log = self.read_json("runtime/memory/failure_log.json")
         self.assertEqual(failure_log["failures"][0]["failure_type"], "scope_violation")
 
@@ -199,6 +250,11 @@ class HarnessTestCase(unittest.TestCase):
         second_prompt = (self.project_root / "runtime" / "attempts" / "fb1-mb3" / "attempt-002" / "prompt.md").read_text(encoding="utf-8")
         self.assertIn("Verification Digest:", second_prompt)
         self.assertIn("Retry Count: 1", second_prompt)
+        retry_outcome = self.read_json("runtime/attempts/fb1-mb3/attempt-001/attempt_finish_gate_outcome.json")
+        pass_outcome = self.read_json("runtime/attempts/fb1-mb3/attempt-002/attempt_finish_gate_outcome.json")
+        self.assertEqual(retry_outcome["symphony_instruction"]["action"], "schedule_semantic_retry")
+        self.assertTrue(retry_outcome["symphony_instruction"]["retryable"])
+        self.assertEqual(pass_outcome["symphony_instruction"]["action"], "release_to_review")
         failure_log = self.read_json("runtime/memory/failure_log.json")
         self.assertEqual(failure_log["failures"][0]["result"], "retry")
 
@@ -217,6 +273,9 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(attempts, ["attempt-001", "attempt-002", "attempt-003"])
         third_prompt = (attempts_root / "attempt-003" / "prompt.md").read_text(encoding="utf-8")
         self.assertIn("Retry Count: 2", third_prompt)
+        recovery_outcome = self.read_json("runtime/attempts/fb1-mb4/attempt-003/attempt_finish_gate_outcome.json")
+        self.assertEqual(recovery_outcome["symphony_instruction"]["action"], "stop_and_route_recovery")
+        self.assertFalse(recovery_outcome["symphony_instruction"]["retryable"])
 
     def test_mb_runner_routes_explicit_spec_gap_without_retry(self) -> None:
         self.run_mb("fb1-mb5", expected=1)
@@ -227,6 +286,11 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(state["last_failure_reason"], "spec_gap")
         report_path = self.project_root / "runtime" / "attempts" / "fb1-mb5" / "attempt-001" / "verification_report.json"
         self.assertFalse(report_path.exists())
+        finish_outcome = self.read_json("runtime/attempts/fb1-mb5/attempt-001/attempt_finish_gate_outcome.json")
+        self.assertEqual(finish_outcome["aipd_decision"]["status"], "routed_to_owner")
+        self.assertEqual(finish_outcome["aipd_decision"]["issue_type"], "spec_gap")
+        self.assertEqual(finish_outcome["aipd_decision"]["route_to"], "spec_architect")
+        self.assertEqual(finish_outcome["symphony_instruction"]["action"], "stop_and_route_owner")
         failure_log = self.read_json("runtime/memory/failure_log.json")
         self.assertEqual(failure_log["failures"][0]["failure_type"], "spec_gap")
         self.assertEqual(failure_log["failures"][0]["result"], "routed_to_recovery")
@@ -248,6 +312,10 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(blocked_state["status"], "blocked")
         self.assertEqual(blocked_state["approval_status"], "pending")
         self.assertEqual(blocked_state["last_failure_reason"], "human_approval_required")
+        start_reject = self.read_json("runtime/gate_outcomes/fb1-mb7/attempt_start.json")
+        self.assertEqual(start_reject["symphony_instruction"]["action"], "pause_wait_human")
+        self.assertFalse(start_reject["symphony_instruction"]["may_start_codex"])
+        self.assertFalse((self.project_root / "runtime" / "attempts" / "fb1-mb7").exists())
 
         self.run_mb("fb1-mb7", "--approve")
         state = self.read_json("runtime/state/fb1-mb7.state.json")
@@ -255,6 +323,49 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(state["approval_status"], "approved")
         self.assertTrue(state["review_required"])
         self.assertEqual(state["next_action"], "handoff_to_review")
+
+    def test_mb_runner_defers_when_same_mb_lock_exists(self) -> None:
+        self.write_lock("mb", "fb1-mb1")
+        self.run_mb("fb1-mb1", expected=1)
+        start_reject = self.read_json("runtime/gate_outcomes/fb1-mb1/attempt_start.json")
+        self.assertEqual(start_reject["symphony_instruction"]["action"], "defer_retry")
+        self.assertFalse(start_reject["symphony_instruction"]["may_start_codex"])
+        self.assertFalse((self.project_root / "runtime" / "attempts" / "fb1-mb1").exists())
+
+    def test_mb_runner_defers_on_exclusive_touch_overlap(self) -> None:
+        self.write_lock("touch", self.lock_token("src/app.py"))
+        self.run_mb("fb1-mb1", expected=1)
+        start_reject = self.read_json("runtime/gate_outcomes/fb1-mb1/attempt_start.json")
+        self.assertEqual(start_reject["symphony_instruction"]["action"], "defer_retry")
+        self.assertIn("touch", start_reject["reason"])
+        self.assertFalse((self.project_root / "runtime" / "attempts" / "fb1-mb1").exists())
+
+    def test_mb_runner_defers_on_shared_write_artifact_overlap(self) -> None:
+        spec_path = self.project_root / "missions" / "fb1-mb1.machine.json"
+        spec = self.read_json("missions/fb1-mb1.machine.json")
+        spec["concurrency"] = {
+            "shared_write_artifacts": ["SESSION_STATE.md"]
+        }
+        spec_path.write_text(json.dumps(spec), encoding="utf-8")
+        self.write_lock("artifact", self.lock_token("SESSION_STATE.md"))
+        self.run_mb("fb1-mb1", expected=1)
+        start_reject = self.read_json("runtime/gate_outcomes/fb1-mb1/attempt_start.json")
+        self.assertEqual(start_reject["symphony_instruction"]["action"], "defer_retry")
+        self.assertIn("artifact", start_reject["reason"])
+        self.assertFalse((self.project_root / "runtime" / "attempts" / "fb1-mb1").exists())
+
+    def test_mb_runner_blocks_on_unresolved_mb_dependency(self) -> None:
+        spec_path = self.project_root / "missions" / "fb1-mb1.machine.json"
+        spec = self.read_json("missions/fb1-mb1.machine.json")
+        spec["concurrency"] = {
+            "blocked_by_mbs": ["fb1-mb2"]
+        }
+        spec_path.write_text(json.dumps(spec), encoding="utf-8")
+        self.run_mb("fb1-mb1", expected=1)
+        start_reject = self.read_json("runtime/gate_outcomes/fb1-mb1/attempt_start.json")
+        self.assertEqual(start_reject["symphony_instruction"]["action"], "release_and_wait_input")
+        self.assertFalse(start_reject["symphony_instruction"]["may_start_codex"])
+        self.assertFalse((self.project_root / "runtime" / "attempts" / "fb1-mb1").exists())
 
     def test_legacy_mb_without_autonomy_defaults_to_l2(self) -> None:
         spec_path = self.project_root / "missions" / "fb1-mb1.machine.json"

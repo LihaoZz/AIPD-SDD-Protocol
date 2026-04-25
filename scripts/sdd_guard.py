@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from jsonschema import Draft202012Validator
+
 
 PROTOCOL_ROOT = Path(__file__).resolve().parent.parent
 
@@ -20,10 +22,13 @@ PROTOCOL_FILES = [
     "docs/05_operating_playbook.md",
     "docs/06_session_bootstrap.md",
     "docs/07_repository_layout.md",
+    "docs/08_symphony_integration_plan.md",
+    "docs/09_symphony_mb_adapter_contract.md",
     "docs/99_legacy_master_protocol_v4.md",
     "prompts/SPEC_ARCHITECT.system.md",
     "prompts/BUILDER.system.md",
     "prompts/REVIEWER.system.md",
+    "schemas/aipd-gate-outcome.schema.json",
     "schemas/eval-asset.schema.json",
     "schemas/hook-event.schema.json",
     "schemas/quality-report.schema.json",
@@ -47,6 +52,14 @@ PROTOCOL_FILES = [
     "templates/RESEARCH_NOTE.template.md",
     "templates/SCOPE.template.md",
     "templates/SESSION_STATE.template.md",
+]
+
+GATE_OUTCOME_EXAMPLE_FILES = [
+    "schemas/examples/aipd-gate-outcome/start-pass.json",
+    "schemas/examples/aipd-gate-outcome/start-reject.json",
+    "schemas/examples/aipd-gate-outcome/finish-pass.json",
+    "schemas/examples/aipd-gate-outcome/finish-retry.json",
+    "schemas/examples/aipd-gate-outcome/finish-recovery.json",
 ]
 
 PROJECT_FILES = {
@@ -284,6 +297,9 @@ PROTOCOL_REQUIRED_SNIPPETS = {
         "Prompt requirements are context-relative",
         "page family",
         "plain-language, screen-focused prompts",
+        "AIPD gate outcome",
+        "schemas/aipd-gate-outcome.schema.json",
+        "Fail-closed",
     ],
     "docs/02_artifacts.md": [
         "<PROJECT_ROOT>/experience_prompts/*.md",
@@ -298,6 +314,8 @@ PROTOCOL_REQUIRED_SNIPPETS = {
         "`external_tool_prompt_ref`",
         "`page_family_id`",
         "forbidden drift",
+        "blocked_by_mbs",
+        "defer_retry",
     ],
     "docs/05_operating_playbook.md": [
         "screen by screen",
@@ -305,6 +323,14 @@ PROTOCOL_REQUIRED_SNIPPETS = {
         "`state_variant`",
         "`canonical_shell`",
         "`stitch_iterative_refine`",
+        "check-gate-outcome",
+    ],
+    "docs/09_symphony_mb_adapter_contract.md": [
+        "tracker.kind = aipd_mb",
+        "runtime/state/<mb_id>.state.json",
+        "attempt_start",
+        "attempt_finish",
+        "Unknown actions fail closed.",
     ],
     "prompts/SPEC_ARCHITECT.system.md": [
         "experience prompt artifact",
@@ -444,6 +470,10 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def read_json(path: Path) -> object:
+    return json.loads(read_text(path))
+
+
 def fail(message: str, errors: list[str]) -> None:
     errors.append(message)
 
@@ -528,6 +558,55 @@ def validate_protocol(root: Path) -> list[str]:
                 require_headings(path, PROTOCOL_REQUIRED_HEADINGS[rel_path], errors, root)
             if rel_path in PROTOCOL_REQUIRED_SNIPPETS:
                 require_snippets(path, PROTOCOL_REQUIRED_SNIPPETS[rel_path], errors, root)
+    errors.extend(validate_gate_outcome_examples(root))
+    return errors
+
+
+def format_schema_error(error: object) -> str:
+    path_parts = getattr(error, "absolute_path", [])
+    path = ".".join(str(part) for part in path_parts)
+    message = getattr(error, "message", str(error))
+    if path:
+        return f"{path}: {message}"
+    return message
+
+
+def validate_json_with_schema_file(instance: object, schema_path: Path) -> list[str]:
+    try:
+        schema = read_json(schema_path)
+        Draft202012Validator.check_schema(schema)
+    except json.JSONDecodeError as exc:
+        return [f"{display_path(schema_path)} is not valid JSON: {exc}"]
+    except Exception as exc:
+        return [f"{display_path(schema_path)} is not a valid JSON schema: {exc}"]
+
+    validator = Draft202012Validator(schema)
+    return [format_schema_error(err) for err in validator.iter_errors(instance)]
+
+
+def validate_gate_outcome(path: Path, base: Optional[Path] = None) -> list[str]:
+    errors: list[str] = []
+    if not path.is_file():
+        fail(f"missing gate outcome file: {display_path(path, base)}", errors)
+        return errors
+    try:
+        data = read_json(path)
+    except json.JSONDecodeError as exc:
+        fail(f"{display_path(path, base)} is not valid JSON: {exc}", errors)
+        return errors
+
+    schema_errors = validate_json_with_schema_file(data, PROTOCOL_ROOT / "schemas" / "aipd-gate-outcome.schema.json")
+    errors.extend(f"{display_path(path, base)} {err}" for err in schema_errors)
+    return errors
+
+
+def validate_gate_outcome_examples(root: Path) -> list[str]:
+    errors: list[str] = []
+    for rel_path in GATE_OUTCOME_EXAMPLE_FILES:
+        path = root / rel_path
+        require_file(path, errors, root)
+        if path.is_file():
+            errors.extend(validate_gate_outcome(path, root))
     return errors
 
 
@@ -1187,6 +1266,9 @@ def main() -> int:
     review_parser = subparsers.add_parser("check-review", help="Validate one quality report JSON file.")
     review_parser.add_argument("path", help="Path to the quality report JSON file.")
 
+    gate_parser = subparsers.add_parser("check-gate-outcome", help="Validate one AIPD gate outcome JSON file.")
+    gate_parser.add_argument("path", help="Path to the AIPD gate outcome JSON file.")
+
     all_parser = subparsers.add_parser("check-all", help="Validate protocol files and one external project root.")
     all_parser.add_argument("project_root", nargs="?", help="Optional path to the external project root.")
 
@@ -1224,6 +1306,10 @@ def main() -> int:
     if args.command in {"check-quality-report", "check-review"}:
         path = resolve_path(args.path)
         return print_result(validate_quality_report(path, path.parent.parent), f"quality report {path}")
+
+    if args.command == "check-gate-outcome":
+        path = resolve_path(args.path)
+        return print_result(validate_gate_outcome(path, path.parent.parent), f"AIPD gate outcome {path}")
 
     if args.command == "check-all":
         errors = validate_protocol(PROTOCOL_ROOT)

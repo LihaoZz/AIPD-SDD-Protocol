@@ -5,8 +5,10 @@
 ```text
 .
 ├── README.md
+├── bootstrap/
 ├── docs/
 ├── prompts/
+├── runtime/
 ├── schemas/
 ├── scripts/
 └── templates/
@@ -19,7 +21,9 @@
 | Directory | Purpose |
 | :--- | :--- |
 | `docs/` | Human-readable protocol guidance and workflow definitions |
+| `bootstrap/` | One-repository install, init, and runtime launch entrypoints |
 | `prompts/` | Role-specific operating prompts for planning, implementation, and review |
+| `runtime/` | Bundled runtime implementations shipped with the protocol |
 | `schemas/` | Machine-readable validation contracts |
 | `scripts/` | Local validation and guardrail scripts |
 | `templates/` | Starter files for real projects |
@@ -31,7 +35,7 @@
 
 Do not mix reusable protocol assets with project-specific state.
 
-- reusable rules belong in `docs/`, `prompts/`, `schemas/`, `scripts/`, and `templates/`
+- reusable rules belong in `docs/`, `prompts/`, `schemas/`, `scripts/`, `templates/`, and bundled runtime directories such as `runtime/symphony/`
 - live project truth belongs in the external `PROJECT_ROOT`
 
 This separation makes it easier to reuse the protocol across different products.
@@ -47,8 +51,10 @@ This separation makes it easier to reuse the protocol across different products.
 ```text
 .
 ├── README.md
+├── bootstrap/
 ├── docs/
 ├── prompts/
+├── runtime/
 ├── schemas/
 ├── scripts/
 └── templates/
@@ -84,7 +90,9 @@ This separation makes it easier to reuse the protocol across different products.
 | 目录 | 用途 |
 | :--- | :--- |
 | `docs/` | 给人阅读的协议说明和流程定义 |
+| `bootstrap/` | 单仓库安装、初始化和启动入口 |
 | `prompts/` | 规划、实现和审查等不同角色的提示词 |
+| `runtime/` | 随协议一起分发的运行时实现 |
 | `schemas/` | 机器可读的校验契约 |
 | `scripts/` | 本地校验和守门脚本 |
 | `templates/` | 真实项目可复用的模板文件 |
@@ -94,7 +102,7 @@ This separation makes it easier to reuse the protocol across different products.
 
 不要把可复用的协议资产和项目专属状态混在一起。
 
-- 可复用规则放在 `docs/`、`prompts/`、`schemas/` 和 `templates/`
+- 可复用规则放在 `docs/`、`bootstrap/`、`prompts/`、`runtime/`、`schemas/`、`scripts/` 和 `templates/`
 - 某个真实项目的当前状态和 harness 运行产物放在外部 `PROJECT_ROOT`
 
 这样分层后，这套协议会更容易复用到不同产品中。

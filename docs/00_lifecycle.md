@@ -277,6 +277,34 @@ This rule applies in:
 - review
 - recovery
 
+## AIPD Gate Outcome Rule
+
+When an external execution runtime such as Symphony runs an `MB`, AIPD remains
+the semantic authority.
+
+The runtime may schedule work, hold locks, start Codex, retry, pause, release to
+review, or close an `MB` only through a validated AIPD gate outcome.
+
+The gate outcome must validate against `schemas/aipd-gate-outcome.schema.json`
+before the runtime acts on it.
+
+Two gates exist:
+
+- `attempt_start`: decides whether Codex may start for one MB attempt
+- `attempt_finish`: decides what happens after the attempt evidence is known
+
+Fail-closed rule:
+
+- missing gate outcome means Symphony must not start Codex
+- malformed gate outcome means Symphony must not start Codex
+- unknown `symphony_instruction.action` means Symphony must not start Codex
+- `may_start_codex` is valid only when `action` is `dispatch_codex`
+- process exit alone must not decide retry, review, recovery, or closure
+
+If the gate outcome is invalid, ambiguous, or missing required evidence, route it
+as `state_drift`, `quality_evidence_gap`, or `review_context_gap` according to
+the concrete failure.
+
 ## Bootstrap Rule
 
 If the user starts with only a repository and a scene, the agent must not ask for the SDD path again.
@@ -544,6 +572,29 @@ Builder 开工前必须读取：
 - `state_drift` -> `Recovery Coordinator`
 - `environment_issue` -> `Recovery Coordinator`
 - `review_context_gap` -> 当前场景主导角色
+
+### AIPD Gate Outcome 规则
+
+当外部执行运行时（例如 Symphony）运行一个 `MB` 时，AIPD 仍然是语义权威。
+
+运行时可以调度任务、持有锁、启动 Codex、重试、暂停、交给 review 或关闭 `MB`，但只能依据一个已经校验通过的 AIPD gate outcome 执行。
+
+Gate outcome 必须先通过 `schemas/aipd-gate-outcome.schema.json` 校验，运行时才可以执行其中的指令。
+
+存在两个 gate：
+
+- `attempt_start`：决定某次 `MB` attempt 是否可以启动 Codex
+- `attempt_finish`：在 attempt 证据产生后，决定下一步怎么处理
+
+Fail-closed 规则：
+
+- gate outcome 缺失时，Symphony 不得启动 Codex
+- gate outcome 格式错误时，Symphony 不得启动 Codex
+- `symphony_instruction.action` 未知时，Symphony 不得启动 Codex
+- 只有当 `action` 是 `dispatch_codex` 时，`may_start_codex` 才可以为 `true`
+- 不能只根据进程退出码决定 retry、review、recovery 或 close
+
+如果 gate outcome 无效、有歧义，或缺少必需证据，应根据具体失败归类为 `state_drift`、`quality_evidence_gap` 或 `review_context_gap`。
 
 ### 启动规则
 

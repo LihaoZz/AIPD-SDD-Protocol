@@ -1,8 +1,8 @@
 # Symphony Integration Plan
 
-Status: active planning ledger
+Status: active planning ledger for bundled single-repo integration
 
-Last updated: 2026-04-19
+Last updated: 2026-04-25
 
 ## Purpose
 
@@ -29,15 +29,19 @@ If the gate outcome is missing, invalid, or ambiguous, Symphony must fail closed
 | Area | Path | Role |
 | :--- | :--- | :--- |
 | AIPD protocol repo | `/Users/lihaozheng/Documents/AI/Product-Dev` | Protocol rules, artifacts, schemas, gate contracts, guard checks, and AIPD tests |
+| Bundled Symphony runtime | `/Users/lihaozheng/Documents/AI/Product-Dev/runtime/symphony` | In-repo runtime distribution for one-download AIPD delivery |
 | Symphony upstream checkout | `/Users/lihaozheng/Documents/AI/external/openai-symphony` | External read/audit source for Symphony |
-| Future Symphony fork | `/Users/lihaozheng/Documents/AI/external/aipd-symphony-fork` | Runtime code changes if Symphony needs adapter or runner changes |
 | External demo roots | `/Users/lihaozheng/Documents/AI/aipd-symphony-demo-roots/*` | Real product/demo execution roots, kept outside the protocol repo |
 
-Do not copy the full Symphony codebase into the AIPD protocol repo.
+Do not collapse protocol truth, bundled runtime, and external project truth into
+one directory tree.
 
-The AIPD repo should keep only integration contracts, schemas, protocol rules,
-validation code, and tests. Symphony runtime changes should live in a separate
-fork or external runtime workspace.
+The AIPD repo now ships the Symphony runtime for one-download delivery, but the
+semantic split remains:
+
+- protocol rules and schemas live at the repository root
+- bundled runtime code lives under `runtime/symphony`
+- real product state still lives in the external `PROJECT_ROOT`
 
 ## Current Symphony Snapshot
 
@@ -394,64 +398,132 @@ record_gate_outcome(mb_id, outcome)
 
 ### Phase 4: AIPD Contract Design
 
-- [ ] Add `schemas/aipd-gate-outcome.schema.json`.
-- [ ] Add gate outcome examples for start pass, start reject, finish pass, finish retry, finish recovery.
-- [ ] Add validation helper or guard check for the gate outcome schema.
-- [ ] Add protocol text requiring Symphony to fail closed on invalid gate outcomes.
+- [x] Add `schemas/aipd-gate-outcome.schema.json`.
+- [x] Add gate outcome examples for start pass, start reject, finish pass, finish retry, finish recovery.
+- [x] Add validation helper or guard check for the gate outcome schema.
+- [x] Add protocol text requiring Symphony to fail closed on invalid gate outcomes.
+
+Phase 4 completion evidence:
+
+- schema: `schemas/aipd-gate-outcome.schema.json`
+- examples: `schemas/examples/aipd-gate-outcome/*.json`
+- guard command: `python3 scripts/sdd_guard.py check-gate-outcome <path>`
+- protocol rule: `docs/00_lifecycle.md` AIPD Gate Outcome Rule
+- validation: `PYTHONPYCACHEPREFIX=/tmp/codex-pycache python3 -m py_compile scripts/sdd_guard.py`
+- validation: `python3 scripts/sdd_guard.py check-protocol`
+- validation: `python3 -m unittest tests.test_harness -v`
 
 ### Phase 5: Attempt Gate Extraction
 
-- [ ] Split current `mb_runner.py` logic into conceptual `attempt_start` and `attempt_finish` units.
-- [ ] Keep current `mb_runner.py` behavior stable during extraction.
-- [ ] Add tests for start rejected, finish passed, finish retry, and finish recovery.
+- [x] Split current `mb_runner.py` logic into conceptual `attempt_start` and `attempt_finish` units.
+- [x] Keep current `mb_runner.py` behavior stable during extraction.
+- [x] Add tests for start rejected, finish passed, finish retry, and finish recovery.
+
+Phase 5 completion evidence:
+
+- runner boundaries: `scripts/mb_runner.py` `attempt_start()` and `attempt_finish()`
+- start pass evidence: per-attempt `attempt_start_gate_outcome.json`
+- start reject evidence: `runtime/gate_outcomes/<mb_id>/attempt_start.json`
+- finish evidence: per-attempt `attempt_finish_gate_outcome.json`
+- regression coverage: `tests/test_harness.py` validates start reject, finish pass, finish retry, and finish recovery gate outcomes
+- validation: `PYTHONPYCACHEPREFIX=/tmp/codex-pycache python3 -m py_compile scripts/mb_runner.py scripts/sdd_guard.py`
+- validation: `python3 scripts/sdd_guard.py check-protocol`
+- validation: `python3 -m unittest tests.test_harness -v`
 
 ### Phase 6: Concurrency Contract
 
-- [ ] Extend or derive MB concurrency metadata.
-- [ ] Add lock acquisition and release rules.
-- [ ] Add tests for same MB lock, touch overlap, shared artifact overlap, and dependency blocking.
+- [x] Extend or derive MB concurrency metadata.
+- [x] Add lock acquisition and release rules.
+- [x] Add tests for same MB lock, touch overlap, shared artifact overlap, and dependency blocking.
+
+Phase 6 completion evidence:
+
+- schema: `schemas/mb_machine_spec.schema.json` optional `concurrency` object
+- protocol rule: `docs/03_mission_blocks.md` MB Concurrency Contract
+- runner locks: `scripts/mb_runner.py` derives lock paths from same MB, `concurrency_group`, `exclusive_touch`, and `shared_write_artifacts`
+- runner dependency block: `blocked_by_mbs` blocks `attempt_start` until dependencies have passed runtime state
+- lock release: acquired locks are released after `attempt_finish` or pre-execution block
+- regression coverage: `tests/test_harness.py` covers same MB lock, exclusive touch overlap, shared write artifact overlap, dependency blocking, and successful lock release
+- validation: `PYTHONPYCACHEPREFIX=/tmp/codex-pycache python3 -m py_compile scripts/mb_runner.py scripts/sdd_guard.py`
+- validation: `python3 scripts/sdd_guard.py check-protocol`
+- validation: `python3 -m unittest tests.test_harness -v`
 
 ### Phase 7: Symphony MB Adapter Design
 
-- [ ] Design `tracker.kind: aipd_mb`.
-- [ ] Define MB state mapping.
-- [ ] Define claim/release semantics.
-- [ ] Define dashboard fields for MB status and gate evidence.
+- [x] Design `tracker.kind: aipd_mb`.
+- [x] Define MB state mapping.
+- [x] Define claim/release semantics.
+- [x] Define dashboard fields for MB status and gate evidence.
+
+Phase 7 completion evidence:
+
+- adapter contract: `docs/09_symphony_mb_adapter_contract.md`
+- adapter identity: `tracker.kind = aipd_mb`
+- state mapping: AIPD runtime states to Symphony task states
+- claim semantics: claim requires validated `attempt_start` gate outcome
+- release semantics: release applies only validated `attempt_finish` gate outcome actions
+- dashboard fields: MB status, gate decision, Symphony instruction, evidence refs, state ref, and verification digest
+- validation: `python3 scripts/sdd_guard.py check-protocol`
 
 ### Phase 8: Symphony Fork Runtime Integration
 
-- [ ] Create or select external Symphony fork.
-- [ ] Add AIPD MB tracker adapter.
-- [ ] Add AIPD gate outcome validator.
-- [ ] Add runner guard before Codex start.
-- [ ] Add finish gate after Codex turn.
-- [ ] Add outcome handler that accepts only known actions.
+- [x] Create or select external Symphony fork.
+- [x] Add AIPD MB tracker adapter.
+- [x] Add AIPD gate outcome validator.
+- [x] Add runner guard before Codex start.
+- [x] Add finish gate after Codex turn.
+- [x] Add outcome handler that accepts only known actions.
+
+Phase 8 completion evidence:
+
+- bundled runtime target: `/Users/lihaozheng/Documents/AI/Product-Dev/runtime/symphony`
+- original fork source: `/Users/lihaozheng/Documents/AI/external/aipd-symphony-fork`
+- source: cloned from `/Users/lihaozheng/Documents/AI/external/openai-symphony`
+- adapter: `/Users/lihaozheng/Documents/AI/Product-Dev/runtime/symphony/elixir/lib/symphony_elixir/aipd/adapter.ex`
+- gate validator: `/Users/lihaozheng/Documents/AI/Product-Dev/runtime/symphony/elixir/lib/symphony_elixir/aipd/gate_outcome.ex`
+- tracker routing: `tracker.kind = aipd_mb` routes through `SymphonyElixir.Tracker`
+- runner guard: `AgentRunner` calls AIPD `claim_issue` before workspace creation or Codex start
+- finish gate: `AgentRunner` validates AIPD finish outcome after Codex turn completion
+- outcome handler: unknown actions and unsafe `may_start_codex` combinations fail closed
+- validation: `mise exec -- mix format --check-formatted`
+- validation: `mise exec -- mix test test/symphony_elixir/aipd_adapter_test.exs`
+- validation: `mise exec -- mix test --max-cases 1`
 
 ### Phase 9: External Demo Validation
 
-- [ ] Create external demo root.
-- [ ] Run one MB direct success path.
-- [ ] Run verification failure and semantic retry path.
-- [ ] Run start rejection path.
-- [ ] Run scope violation to recovery path.
-- [ ] Run concurrency conflict path.
+- [x] Create external demo root.
+- [x] Run one MB direct success path.
+- [x] Run verification failure and semantic retry path.
+- [x] Run start rejection path.
+- [x] Run scope violation to recovery path.
+- [x] Run concurrency conflict path.
+
+Phase 9 completion evidence:
+
+- demo root: `/Users/lihaozheng/Documents/AI/aipd-symphony-demo-roots/2026-04-25-phase9`
+- direct success: `success` root, `fb1-mb1`, finish action `release_to_review`
+- semantic retry: `semantic_retry` root, `fb1-mb3`, first finish action `schedule_semantic_retry`, second finish action `release_to_review`
+- start rejection: `start_rejection` root, `fb1-mb7`, start action `pause_wait_human`, no attempt directory created
+- scope violation: `scope_violation` root, `fb1-mb2`, finish action `stop_and_route_recovery`
+- concurrency conflict: `concurrency_conflict` root, `fb1-mb1`, start action `defer_retry`, no attempt directory created
+- validation: `python3 scripts/sdd_guard.py check-gate-outcome <demo gate outcome>`
 
 ## Test Requirements Before Real Use
 
 Required tests:
 
-- [ ] `attempt_start` rejected means Codex is never started.
-- [ ] `spec_gap` routes to `Spec Architect` and is not Symphony runtime retried.
-- [ ] `state_drift` routes to `Recovery Coordinator`.
-- [ ] malformed gate outcome fails closed.
-- [ ] unknown Symphony action fails closed.
-- [ ] lock conflict defers without launching Codex.
-- [ ] same `mb_id` cannot run concurrently.
-- [ ] overlapping `exclusive_touch` cannot run concurrently.
-- [ ] `verification_failed` semantic retry prompt includes digest, failure reason, and retry count.
-- [ ] `scope_violation` routes to recovery.
-- [ ] passed L1/L2 routes to review.
-- [ ] passed L3 can close automatically only when explicitly allowed.
+- [x] `attempt_start` rejected means Codex is never started.
+- [x] `spec_gap` routes to `Spec Architect` and is not Symphony runtime retried.
+- [x] `state_drift` routes to `Recovery Coordinator`.
+- [x] malformed gate outcome fails closed.
+- [x] unknown Symphony action fails closed.
+- [x] lock conflict defers without launching Codex.
+- [x] same `mb_id` cannot run concurrently.
+- [x] overlapping `exclusive_touch` cannot run concurrently.
+- [x] `verification_failed` semantic retry prompt includes digest, failure reason, and retry count.
+- [x] `scope_violation` routes to recovery.
+- [x] passed L1/L2 routes to review.
+- [x] passed L3 can close automatically only when explicitly allowed.
 
 ## Open Risks
 
@@ -472,3 +544,16 @@ At the start and end of every future Symphony integration task:
 3. Update checklist status when work is completed, blocked, split, or superseded.
 4. Record validation evidence in this file or in a linked artifact.
 5. Do not mark a task complete without a concrete file, schema, test, or command result.
+
+## Single-Repo Delivery Note
+
+The earlier integration design assumed an external AIPD-specific Symphony fork.
+The current delivery target is now:
+
+- one public AIPD repository
+- bundled runtime at `runtime/symphony`
+- bootstrap entrypoints under `bootstrap/`
+- external `PROJECT_ROOT` per real product
+
+This changes installation and distribution, but it does not change the semantic
+boundary between AIPD decision authority and Symphony execution authority.

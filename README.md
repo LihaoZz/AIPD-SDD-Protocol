@@ -4,6 +4,8 @@
 
 This repository is a protocol system for AI-assisted product development.
 
+It is the single distribution repository for the AIPD framework.
+
 It is not the product codebase itself.
 
 It stores:
@@ -14,10 +16,11 @@ It stores:
 - templates
 - validation tools
 - hook entrypoints
+- bundled Symphony runtime integration under `runtime/symphony/`
+- bootstrap entrypoints for one-command local setup under `bootstrap/`
 
-Harness runtime outputs belong in the external `PROJECT_ROOT`, not in this repository.
-
-Real product state lives in the external `PROJECT_ROOT`.
+Harness runtime outputs and real product state still belong in the external
+`PROJECT_ROOT`, not in this repository.
 
 Direct Codex execution in this protocol should go through `scripts/codex_exec_with_hooks.py` so the mandatory hook layer stays active even outside `mb_runner.py`.
 
@@ -36,14 +39,50 @@ This protocol prefers:
 
 Do not add complexity just to look complete.
 
-## Two Roots
+## Three Layers
 
 - `PROTOCOL_ROOT`
-  This repository. It contains the reusable rules, prompts, templates, and scripts.
+  This repository. It contains the reusable rules, prompts, templates, scripts,
+  bundled runtime, and bootstrap helpers.
+- `RUNTIME_ROOT`
+  The bundled Symphony implementation under `runtime/symphony/`. It is shipped
+  with the protocol repo so users can download one repository, but it remains a
+  runtime layer rather than project truth.
 - `PROJECT_ROOT`
   The real product workspace. It contains the source-of-truth files and implementation state for one project.
 
-Keep these two roots separate.
+Keep these layers separate even though they are shipped from one repository.
+
+## Quick Start
+
+Clone this repository once, then use the bundled bootstrap entrypoints:
+
+```bash
+git clone <repo-url>
+cd Product-Dev
+bootstrap/install.sh
+bootstrap/init_project.sh /path/to/my-project
+bootstrap/run_symphony.sh /path/to/my-project
+```
+
+What each command does:
+
+- `bootstrap/install.sh`
+  verifies the local runtime prerequisites for AIPD and bundled Symphony
+- `bootstrap/init_project.sh`
+  initializes a new external `PROJECT_ROOT` from the bundled templates
+- `bootstrap/run_symphony.sh`
+  renders an AIPD-compatible Symphony workflow file and starts the bundled
+  orchestrator
+
+The first product-specification session should still begin in Codex with:
+
+1. `Protocol Root`
+2. `Project Root`
+3. `Scene`
+4. product idea
+
+Symphony is for MB orchestration after the project truth and runnable MBs exist.
 
 ## Startup Contract
 
@@ -93,6 +132,8 @@ Do not ask the user to restate internal protocol paths.
 7. The Builder executes one bounded unit at a time.
 8. Review is based on evidence, not on confidence.
 9. Before ending, the current project state is written for the next session.
+10. When runnable MBs exist, the bundled Symphony runtime can dispatch them in
+    parallel under AIPD gate control.
 
 ## Failure Modes This Protocol Tries To Prevent
 
@@ -242,11 +283,25 @@ Historical reference only:
 
 - [docs/99_legacy_master_protocol_v4.md](docs/99_legacy_master_protocol_v4.md)
 
+## Bundled Runtime
+
+The repository now ships a bundled Symphony runtime at
+`runtime/symphony/`.
+
+This gives users a one-repository download path, but it does not change the
+semantic boundary:
+
+- AIPD defines lifecycle truth, gate contracts, schemas, and verification
+- Symphony handles orchestration, workspace creation, and Codex session dispatch
+- the external `PROJECT_ROOT` remains the source of truth for any real product
+
 ## 中文说明
 
 ### 这个仓库是什么
 
 这个仓库是一套 AI 辅助产品开发协议。
+
+它也是 AIPD 的单仓库分发入口。
 
 它不是业务代码仓库本身。
 
@@ -257,6 +312,8 @@ Historical reference only:
 - 角色提示词
 - 模板
 - 校验工具
+- 内置的 Symphony runtime
+- 一键安装与启动入口
 
 真实项目状态放在外部 `PROJECT_ROOT`。
 

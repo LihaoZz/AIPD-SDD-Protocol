@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/aipd-gate-outcome.schema.json",
+  "title": "AIPD Gate Outcome",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "gate",
+    "mb_id",
+    "attempt_id",
+    "aipd_decision",
+    "symphony_instruction",
+    "reason",
+    "evidence_refs",
+    "state_ref"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "gate": {
+      "type": "string",
+      "enum": [
+        "attempt_start",
+        "attempt_finish"
+      ]
+    },
+    "mb_id": {
+      "type": "string",
+      "pattern": "^fb[0-9]+-mb[0-9]+$"
+    },
+    "attempt_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^attempt-[0-9]{3}$"
+    },
+    "aipd_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "issue_type",
+        "route_to",
+        "next_action"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "authorized",
+            "blocked",
+            "passed",
+            "failed",
+            "retry_allowed",
+            "routed_to_owner",
+            "routed_to_recovery"
+          ]
+        },
+        "issue_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "spec_gap",
+            "implementation_bug",
+            "quality_evidence_gap",
+            "state_drift",
+            "environment_issue",
+            "review_context_gap",
+            null
+          ]
+        },
+        "route_to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "spec_architect",
+            "builder",
+            "recovery_coordinator",
+            "current_scene_lead",
+            null
+          ]
+        },
+        "next_action": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "symphony_instruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "may_start_codex",
+        "retryable",
+        "retry_after_ms"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "dispatch_codex",
+            "defer_retry",
+            "schedule_semantic_retry",
+            "release_and_pause",
+            "release_and_wait_input",
+            "pause_wait_human",
+            "release_to_review",
+            "close_mb",
+            "stop_and_route_owner",
+            "stop_and_route_recovery"
+          ]
+        },
+        "may_start_codex": {
+          "type": "boolean"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "retry_after_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "may_start_codex": {
+                "const": true
+              }
+            },
+            "required": [
+              "may_start_codex"
+            ]
+          },
+          "then": {
+            "properties": {
+              "action": {
+                "const": "dispatch_codex"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "not": {
+                  "const": "dispatch_codex"
+                }
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "may_start_codex": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "state_ref": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "gate": {
+            "const": "attempt_start"
+          },
+          "symphony_instruction": {
+            "properties": {
+              "action": {
+                "const": "dispatch_codex"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        "required": [
+          "gate",
+          "symphony_instruction"
+        ]
+      },
+      "then": {
+        "properties": {
+          "attempt_id": {
+            "type": "string",
+            "pattern": "^attempt-[0-9]{3}$"
+          },
+          "aipd_decision": {
+            "properties": {
+              "status": {
+                "const": "authorized"
+              },
+              "issue_type": {
+                "const": null
+              },
+              "route_to": {
+                "const": null
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "gate": {
+            "const": "attempt_start"
+          },
+          "symphony_instruction": {
+            "properties": {
+              "action": {
+                "not": {
+                  "const": "dispatch_codex"
+                }
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        "required": [
+          "gate",
+          "symphony_instruction"
+        ]
+      },
+      "then": {
+        "properties": {
+          "attempt_id": {
+            "const": null
+          }
+        }
+      }
+    }
+  ]
+}

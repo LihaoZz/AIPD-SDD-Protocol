@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "gate": "attempt_finish",
+  "mb_id": "fb1-mb1",
+  "attempt_id": "attempt-001",
+  "aipd_decision": {
+    "status": "passed",
+    "issue_type": null,
+    "route_to": null,
+    "next_action": "handoff_to_review"
+  },
+  "symphony_instruction": {
+    "action": "release_to_review",
+    "may_start_codex": false,
+    "retryable": false,
+    "retry_after_ms": null
+  },
+  "reason": "Verifier passed for an L2 MB, so review is required before closure.",
+  "evidence_refs": [
+    "runtime/attempts/fb1-mb1/attempt-001/verification_report.json"
+  ],
+  "state_ref": "runtime/state/fb1-mb1.state.json"
+}

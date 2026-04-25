@@ -264,6 +264,7 @@ Commands:
 - `python3 scripts/sdd_guard.py check-function /path/to/workspace/function_blocks/<function-file>.md`
 - `python3 scripts/sdd_guard.py check-mission /path/to/workspace/missions/<mission-file>.md`
 - `python3 scripts/sdd_guard.py check-quality-report /path/to/workspace/reviews/<quality-report>.json`
+- `python3 scripts/sdd_guard.py check-gate-outcome /path/to/gate-outcome.json`
 
 ## 中文翻译
 
@@ -475,3 +476,4 @@ assistant 可以建议风格或工具，但最终 UI 定调权在用户手里。
 - `python3 scripts/sdd_guard.py check-function /path/to/workspace/function_blocks/<function-file>.md`
 - `python3 scripts/sdd_guard.py check-mission /path/to/workspace/missions/<mission-file>.md`
 - `python3 scripts/sdd_guard.py check-quality-report /path/to/workspace/reviews/<quality-report>.json`
+- `python3 scripts/sdd_guard.py check-gate-outcome /path/to/gate-outcome.json`

@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "gate": "attempt_start",
+  "mb_id": "fb1-mb2",
+  "attempt_id": null,
+  "aipd_decision": {
+    "status": "blocked",
+    "issue_type": "spec_gap",
+    "route_to": "spec_architect",
+    "next_action": "clarify_acceptance"
+  },
+  "symphony_instruction": {
+    "action": "release_and_pause",
+    "may_start_codex": false,
+    "retryable": false,
+    "retry_after_ms": null
+  },
+  "reason": "Parent FB acceptance is missing or contradictory.",
+  "evidence_refs": [
+    "runtime/preflight/mb_preflight_fb1-mb2.json"
+  ],
+  "state_ref": "runtime/state/fb1-mb2.state.json"
+}

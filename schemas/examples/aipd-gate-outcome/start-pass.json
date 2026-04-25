@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "gate": "attempt_start",
+  "mb_id": "fb1-mb1",
+  "attempt_id": "attempt-001",
+  "aipd_decision": {
+    "status": "authorized",
+    "issue_type": null,
+    "route_to": null,
+    "next_action": "start_codex"
+  },
+  "symphony_instruction": {
+    "action": "dispatch_codex",
+    "may_start_codex": true,
+    "retryable": false,
+    "retry_after_ms": null
+  },
+  "reason": "MB preflight passed, runtime state is ready, and no lock conflict exists.",
+  "evidence_refs": [
+    "runtime/preflight/mb_preflight_fb1-mb1.json"
+  ],
+  "state_ref": "runtime/state/fb1-mb1.state.json"
+}

@@ -136,6 +136,54 @@
         }
       }
     },
+    "concurrency": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "concurrency_group": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "exclusive_touch": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "shared_read_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "shared_write_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "blocked_by_mbs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^fb[0-9]+-mb[0-9]+$"
+          }
+        },
+        "can_run_parallel": {
+          "type": "boolean"
+        },
+        "parallel_safe_reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
     "autonomy_level": {
       "type": "string",
       "enum": [

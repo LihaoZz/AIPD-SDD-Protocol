@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "gate": "attempt_finish",
+  "mb_id": "fb1-mb3",
+  "attempt_id": "attempt-001",
+  "aipd_decision": {
+    "status": "retry_allowed",
+    "issue_type": "implementation_bug",
+    "route_to": "builder",
+    "next_action": "retry_with_verification_feedback"
+  },
+  "symphony_instruction": {
+    "action": "schedule_semantic_retry",
+    "may_start_codex": false,
+    "retryable": true,
+    "retry_after_ms": 0
+  },
+  "reason": "Verifier failed, retry limit has not been reached, and the issue is Builder-owned.",
+  "evidence_refs": [
+    "runtime/attempts/fb1-mb3/attempt-001/verification_report.json",
+    "runtime/memory/failure_log.json"
+  ],
+  "state_ref": "runtime/state/fb1-mb3.state.json"
+}
