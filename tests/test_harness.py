@@ -54,6 +54,16 @@ class HarnessTestCase(unittest.TestCase):
             expected=expected,
         )
 
+    def run_gate(self, command: str, *extra_args: str, expected: int | None = 0) -> subprocess.CompletedProcess[str]:
+        return self.run_python(
+            "aipd_gate.py",
+            command,
+            "--project-root",
+            str(self.project_root),
+            *extra_args,
+            expected=expected,
+        )
+
     def read_json(self, relative_path: str) -> dict:
         return json.loads((self.project_root / relative_path).read_text(encoding="utf-8"))
 
@@ -227,6 +237,70 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(finish_outcome["symphony_instruction"]["action"], "release_to_review")
         locks_root = self.project_root / "runtime" / "locks"
         self.assertFalse(locks_root.exists() and list(locks_root.rglob("*.lock")))
+
+    def test_aipd_gate_attempt_start_writes_start_gate(self) -> None:
+        self.run_gate("attempt-start", "--mb-id", "fb1-mb1")
+        gate = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_start_gate_outcome.json")
+        self.assertEqual(gate["symphony_instruction"]["action"], "dispatch_codex")
+        state = self.read_json("runtime/state/fb1-mb1.state.json")
+        self.assertEqual(state["status"], "running")
+        self.assertEqual(state["last_attempt_id"], "attempt-001")
+
+    def test_aipd_gate_attempt_finish_syncs_workspace_and_writes_finish_gate(self) -> None:
+        self.run_gate("attempt-start", "--mb-id", "fb1-mb1")
+
+        workspace_root = Path(self.temp_dir.name) / "workspace"
+        shutil.copytree(self.project_root, workspace_root)
+        (workspace_root / "src" / "app.py").write_text("PASS_ONE\n", encoding="utf-8")
+
+        self.run_gate(
+            "attempt-finish",
+            "--workspace-root",
+            str(workspace_root),
+            "--mb-id",
+            "fb1-mb1",
+            "--attempt-id",
+            "attempt-001",
+        )
+
+        self.assertEqual((self.project_root / "src" / "app.py").read_text(encoding="utf-8"), "PASS_ONE\n")
+        finish_gate = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_finish_gate_outcome.json")
+        self.assertEqual(finish_gate["symphony_instruction"]["action"], "release_to_review")
+        state = self.read_json("runtime/state/fb1-mb1.state.json")
+        self.assertEqual(state["status"], "passed")
+        self.assertTrue(state["review_required"])
+
+    def test_aipd_gate_attempt_finish_routes_summary_declared_spec_gap_back_to_aipd(self) -> None:
+        self.run_gate("attempt-start", "--mb-id", "fb1-mb5")
+
+        workspace_root = Path(self.temp_dir.name) / "workspace-spec-gap"
+        shutil.copytree(self.project_root, workspace_root)
+        summary = (
+            "Blocked by contract conflict, so I did not edit `src/app.py`.\n\n"
+            "This should be routed as a `spec_gap` before implementation.\n\n"
+            "Changed files: none."
+        )
+
+        self.run_gate(
+            "attempt-finish",
+            "--workspace-root",
+            str(workspace_root),
+            "--mb-id",
+            "fb1-mb5",
+            "--attempt-id",
+            "attempt-001",
+            "--summary",
+            summary,
+            expected=1,
+        )
+
+        finish_gate = self.read_json("runtime/attempts/fb1-mb5/attempt-001/attempt_finish_gate_outcome.json")
+        self.assertEqual(finish_gate["aipd_decision"]["issue_type"], "spec_gap")
+        self.assertEqual(finish_gate["symphony_instruction"]["action"], "stop_and_route_owner")
+        self.assertEqual(
+            (self.project_root / "runtime" / "attempts" / "fb1-mb5" / "attempt-001" / "last_message.txt").read_text(encoding="utf-8").strip(),
+            summary,
+        )
 
     def test_mb_runner_scope_violation_routes_recovery(self) -> None:
         self.run_mb("fb1-mb2", expected=1)

@@ -100,7 +100,7 @@ defmodule SymphonyElixir.AipdAdapterTest do
       configure_aipd!(root)
       issue = %Issue{id: "fb1-mb1", identifier: "fb1-mb1"}
 
-      assert {:error, :enoent} = Adapter.claim_issue(issue)
+      assert :ok = Adapter.claim_issue(issue)
 
       write_start_gate!(root, "fb1-mb1", start_gate("fb1-mb1", "release_and_pause", false))
       assert {:error, {:unexpected_aipd_action, "release_and_pause", "dispatch_codex"}} = Adapter.claim_issue(issue)
@@ -109,7 +109,7 @@ defmodule SymphonyElixir.AipdAdapterTest do
       assert :ok = Adapter.claim_issue(issue)
 
       write_finish_gate!(root, "fb1-mb1", finish_gate("fb1-mb1", "release_to_review"))
-      assert :ok = Adapter.finish_issue(issue)
+      assert :ok = Adapter.finish_issue(issue, root, nil)
     after
       File.rm_rf(root)
     end
@@ -122,6 +122,7 @@ defmodule SymphonyElixir.AipdAdapterTest do
     try do
       create_aipd_project!(root)
       write_machine_spec!(root, "fb1-mb1", "Build guarded MB")
+      File.rm!(Path.join([root, "function_blocks", "fb1.md"]))
 
       write_workflow_file!(Workflow.workflow_file_path(),
         tracker_kind: "aipd_mb",
@@ -133,7 +134,7 @@ defmodule SymphonyElixir.AipdAdapterTest do
 
       issue = %Issue{id: "fb1-mb1", identifier: "fb1-mb1"}
 
-      assert_raise RuntimeError, ~r/enoent/, fn ->
+      assert_raise RuntimeError, ~r/aipd_bridge_failed/, fn ->
         AgentRunner.run(issue)
       end
 
@@ -155,7 +156,9 @@ defmodule SymphonyElixir.AipdAdapterTest do
 
   defp create_aipd_project!(root) do
     File.mkdir_p!(Path.join(root, "missions"))
+    File.mkdir_p!(Path.join(root, "function_blocks"))
     File.mkdir_p!(Path.join(root, "runtime/state"))
+    File.write!(Path.join(root, "function_blocks/fb1.md"), "# Function Block\n")
   end
 
   defp write_machine_spec!(root, mb_id, goal, concurrency \\ %{}) do
@@ -166,6 +169,33 @@ defmodule SymphonyElixir.AipdAdapterTest do
       "mb_id" => mb_id,
       "parent_fb_id" => parent_fb_id,
       "goal" => goal,
+      "context_files" => ["src/app.py"],
+      "input_artifacts" => [],
+      "allowed_touch" => ["src/app.py"],
+      "forbidden_touch" => [],
+      "acceptance" => [
+        %{
+          "check_id" => "scope_ok",
+          "type" => "no_out_of_scope_changes"
+        }
+      ],
+      "retry_policy" => %{
+        "max_retries" => 3,
+        "on_retry_limit" => "route_to_recovery"
+      },
+      "prompt_feedback" => %{
+        "include_last_verification_digest" => true,
+        "include_last_failure_reason" => true,
+        "include_retry_count" => true
+      },
+      "issue_owner_map" => %{
+        "spec_gap" => "spec_architect",
+        "implementation_bug" => "builder",
+        "quality_evidence_gap" => "builder",
+        "state_drift" => "recovery_coordinator",
+        "environment_issue" => "recovery_coordinator",
+        "review_context_gap" => "current_scene_lead"
+      },
       "concurrency" => concurrency
     }
 

@@ -81,6 +81,7 @@ defmodule SymphonyElixir.Aipd.Adapter do
   @spec claim_issue(Issue.t()) :: :ok | {:error, term()}
   def claim_issue(%Issue{id: mb_id}) when is_binary(mb_id) do
     with {:ok, root} <- aipd_root(),
+         :ok <- ensure_start_gate(root, mb_id),
          {:ok, outcome} <- GateOutcome.load(start_gate_path(root, mb_id)),
          :ok <- require_action(outcome, "dispatch_codex"),
          :ok <- require_may_start(outcome) do
@@ -90,16 +91,19 @@ defmodule SymphonyElixir.Aipd.Adapter do
 
   def claim_issue(_), do: {:error, :invalid_aipd_issue}
 
-  @spec finish_issue(Issue.t()) :: :ok | {:error, term()}
-  def finish_issue(%Issue{id: mb_id}) when is_binary(mb_id) do
+  @spec finish_issue(Issue.t(), String.t() | nil, String.t() | nil) :: :ok | {:error, term()}
+  def finish_issue(%Issue{id: mb_id}, workspace_root, summary)
+      when is_binary(mb_id) and is_binary(workspace_root) do
     with {:ok, root} <- aipd_root(),
+         :ok <- ensure_finish_gate(root, workspace_root, mb_id, summary),
          {:ok, outcome} <- GateOutcome.load(finish_gate_path(root, mb_id)),
          :ok <- require_finish_action(outcome) do
       :ok
     end
   end
 
-  def finish_issue(_), do: {:error, :invalid_aipd_issue}
+  def finish_issue(%Issue{}, nil, _summary), do: {:error, :missing_workspace_root}
+  def finish_issue(_, _, _), do: {:error, :invalid_aipd_issue}
 
   @spec aipd_tracker?() :: boolean()
   def aipd_tracker?, do: Config.settings!().tracker.kind == "aipd_mb"
@@ -216,6 +220,75 @@ defmodule SymphonyElixir.Aipd.Adapter do
   defp normalize_state(_), do: ""
 
   defp safe_name(value), do: value |> to_string() |> String.replace(~r/[^A-Za-z0-9_.-]/, "_")
+
+  defp generate_start_gate(root, mb_id) do
+    run_bridge(["attempt-start", "--project-root", root, "--mb-id", mb_id, "--codex-command", Config.settings!().codex.command])
+  end
+
+  defp ensure_start_gate(root, mb_id) do
+    if File.exists?(start_gate_path(root, mb_id)), do: :ok, else: generate_start_gate(root, mb_id)
+  end
+
+  defp generate_finish_gate(root, workspace_root, mb_id, summary) do
+    with {:ok, attempt_id} <- latest_attempt_id(root, mb_id) do
+      args = [
+        "attempt-finish",
+        "--project-root",
+        root,
+        "--workspace-root",
+        workspace_root,
+        "--mb-id",
+        mb_id,
+        "--attempt-id",
+        attempt_id
+      ]
+
+      args =
+        case summary do
+          text when is_binary(text) and text != "" -> args ++ ["--summary", text]
+          _ -> args
+        end
+
+      run_bridge(args)
+    end
+  end
+
+  defp ensure_finish_gate(root, workspace_root, mb_id, summary) do
+    if File.exists?(finish_gate_path(root, mb_id)),
+      do: :ok,
+      else: generate_finish_gate(root, workspace_root, mb_id, summary)
+  end
+
+  defp latest_attempt_id(root, mb_id) do
+    root
+    |> Path.join("runtime/attempts/#{mb_id}/attempt-*")
+    |> Path.wildcard()
+    |> Enum.sort()
+    |> List.last()
+    |> case do
+      nil -> {:error, :missing_attempt_id}
+      path -> {:ok, Path.basename(path)}
+    end
+  end
+
+  defp run_bridge(args) do
+    bridge = bridge_script_path()
+
+    case System.find_executable("python3") do
+      nil ->
+        {:error, :python3_not_found}
+
+      python3 ->
+        case System.cmd(python3, [bridge | args], stderr_to_stdout: true) do
+          {_output, 0} -> :ok
+          {output, status} -> {:error, {:aipd_bridge_failed, status, output}}
+        end
+    end
+  end
+
+  defp bridge_script_path do
+    Path.expand("../../../../../../scripts/aipd_gate.py", __DIR__)
+  end
 
   def active_states, do: @active_states
   def terminal_states, do: @terminal_states

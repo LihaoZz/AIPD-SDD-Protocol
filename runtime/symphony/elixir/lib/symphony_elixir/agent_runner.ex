@@ -37,8 +37,8 @@ defmodule SymphonyElixir.AgentRunner do
       result =
         try do
           with :ok <- Workspace.run_before_run_hook(workspace, issue, worker_host),
-               :ok <- run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do
-            maybe_finish_aipd_issue(issue)
+               {:ok, turn_result} <- run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do
+            maybe_finish_aipd_issue(issue, workspace, worker_host, Map.get(turn_result, :last_message_summary))
           end
         after
           Workspace.run_after_run_hook(workspace, issue, worker_host)
@@ -54,15 +54,50 @@ defmodule SymphonyElixir.AgentRunner do
     if Aipd.Adapter.aipd_tracker?(), do: Aipd.Adapter.claim_issue(issue), else: :ok
   end
 
-  defp maybe_finish_aipd_issue(issue) do
-    if Aipd.Adapter.aipd_tracker?(), do: Aipd.Adapter.finish_issue(issue), else: :ok
+  defp maybe_finish_aipd_issue(_issue, _workspace, worker_host, _summary) when is_binary(worker_host) do
+    if Aipd.Adapter.aipd_tracker?(), do: {:error, :remote_aipd_finish_not_supported}, else: :ok
   end
 
-  defp codex_message_handler(recipient, issue) do
+  defp maybe_finish_aipd_issue(issue, workspace, _worker_host, summary) do
+    if Aipd.Adapter.aipd_tracker?(), do: Aipd.Adapter.finish_issue(issue, workspace, summary), else: :ok
+  end
+
+  defp codex_message_handler(recipient, issue, collector) do
     fn message ->
+      maybe_record_last_message(collector, message)
       send_codex_update(recipient, issue, message)
     end
   end
+
+  defp maybe_record_last_message(collector, %{payload: payload}) when is_pid(collector) and is_map(payload) do
+    case extract_assistant_message(payload) do
+      text when is_binary(text) and text != "" ->
+        Agent.update(collector, fn _ -> text end)
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp maybe_record_last_message(_collector, _message), do: :ok
+
+  defp extract_assistant_message(%{"method" => "codex/event/agent_message_delta", "params" => %{"msg" => %{"payload" => %{"delta" => text}}}})
+       when is_binary(text),
+       do: text
+
+  defp extract_assistant_message(%{"method" => "codex/event/agent_message_content_delta", "params" => %{"msg" => %{"content" => text}}})
+       when is_binary(text),
+       do: text
+
+  defp extract_assistant_message(%{method: "codex/event/agent_message_delta", params: %{msg: %{payload: %{delta: text}}}})
+       when is_binary(text),
+       do: text
+
+  defp extract_assistant_message(%{method: "codex/event/agent_message_content_delta", params: %{msg: %{content: text}}})
+       when is_binary(text),
+       do: text
+
+  defp extract_assistant_message(_payload), do: nil
 
   defp send_codex_update(recipient, %Issue{id: issue_id}, message)
        when is_binary(issue_id) and is_pid(recipient) do
@@ -91,17 +126,27 @@ defmodule SymphonyElixir.AgentRunner do
   defp run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do
     max_turns = Keyword.get(opts, :max_turns, Config.settings!().agent.max_turns)
     issue_state_fetcher = Keyword.get(opts, :issue_state_fetcher, &Tracker.fetch_issue_states_by_ids/1)
+    {:ok, collector} = Agent.start_link(fn -> nil end)
 
-    with {:ok, session} <- AppServer.start_session(workspace, worker_host: worker_host) do
-      try do
-        do_run_codex_turns(session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, 1, max_turns)
-      after
-        AppServer.stop_session(session)
+    result =
+      with {:ok, session} <- AppServer.start_session(workspace, worker_host: worker_host) do
+        try do
+          do_run_codex_turns(session, workspace, issue, codex_update_recipient, collector, opts, issue_state_fetcher, 1, max_turns)
+        after
+          AppServer.stop_session(session)
+        end
       end
+
+    summary = Agent.get(collector, & &1)
+    Agent.stop(collector)
+
+    case result do
+      :ok -> {:ok, %{last_message_summary: summary}}
+      {:error, reason} -> {:error, reason}
     end
   end
 
-  defp do_run_codex_turns(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do
+  defp do_run_codex_turns(app_session, workspace, issue, codex_update_recipient, collector, opts, issue_state_fetcher, turn_number, max_turns) do
     prompt = build_turn_prompt(issue, opts, turn_number, max_turns)
 
     with {:ok, turn_session} <-
@@ -109,7 +154,7 @@ defmodule SymphonyElixir.AgentRunner do
              app_session,
              prompt,
              issue,
-             on_message: codex_message_handler(codex_update_recipient, issue)
+             on_message: codex_message_handler(codex_update_recipient, issue, collector)
            ) do
       Logger.info("Completed agent run for #{issue_context(issue)} session_id=#{turn_session[:session_id]} workspace=#{workspace} turn=#{turn_number}/#{max_turns}")
 
@@ -122,6 +167,7 @@ defmodule SymphonyElixir.AgentRunner do
             workspace,
             refreshed_issue,
             codex_update_recipient,
+            collector,
             opts,
             issue_state_fetcher,
             turn_number + 1,
