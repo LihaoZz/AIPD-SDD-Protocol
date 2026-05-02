@@ -75,8 +75,8 @@ defmodule SymphonyElixir.AipdAdapterTest do
     end
   end
 
-  test "gate outcome validator fails closed for unknown action and unsafe Codex start" do
-    valid = start_gate("fb1-mb1", "dispatch_codex", true)
+  test "gate outcome validator fails closed for unknown action and unsafe agent start" do
+    valid = start_gate("fb1-mb1", "dispatch_agent", true, "codex")
 
     assert :ok = GateOutcome.validate(valid)
 
@@ -86,9 +86,10 @@ defmodule SymphonyElixir.AipdAdapterTest do
     unsafe =
       valid
       |> put_in(["symphony_instruction", "action"], "release_and_pause")
-      |> put_in(["symphony_instruction", "may_start_codex"], true)
+      |> put_in(["symphony_instruction", "may_start_agent"], true)
+      |> put_in(["symphony_instruction", "execution_provider"], nil)
 
-    assert {:error, {:unsafe_codex_start, "release_and_pause"}} = GateOutcome.validate(unsafe)
+    assert {:error, {:unsafe_agent_start, "release_and_pause"}} = GateOutcome.validate(unsafe)
   end
 
   test "adapter claim and finish accept only validated gate outcomes" do
@@ -102,11 +103,12 @@ defmodule SymphonyElixir.AipdAdapterTest do
 
       assert :ok = Adapter.claim_issue(issue)
 
-      write_start_gate!(root, "fb1-mb1", start_gate("fb1-mb1", "release_and_pause", false))
-      assert {:error, {:unexpected_aipd_action, "release_and_pause", "dispatch_codex"}} = Adapter.claim_issue(issue)
+      write_start_gate!(root, "fb1-mb1", start_gate("fb1-mb1", "release_and_pause", false, nil))
+      assert {:error, {:unexpected_aipd_action, "release_and_pause", ["dispatch_agent", "dispatch_codex"]}} = Adapter.claim_issue(issue)
 
-      write_start_gate!(root, "fb1-mb1", start_gate("fb1-mb1", "dispatch_codex", true))
+      write_start_gate!(root, "fb1-mb1", start_gate("fb1-mb1", "dispatch_agent", true, "minimax"))
       assert :ok = Adapter.claim_issue(issue)
+      assert {:ok, "minimax"} = Adapter.execution_provider(issue)
 
       write_finish_gate!(root, "fb1-mb1", finish_gate("fb1-mb1", "release_to_review"))
       assert :ok = Adapter.finish_issue(issue, root, nil)
@@ -161,7 +163,7 @@ defmodule SymphonyElixir.AipdAdapterTest do
     File.write!(Path.join(root, "function_blocks/fb1.md"), "# Function Block\n")
   end
 
-  defp write_machine_spec!(root, mb_id, goal, concurrency \\ %{}) do
+  defp write_machine_spec!(root, mb_id, goal, concurrency \\ %{}, execution_provider \\ "codex") do
     [parent_fb_id] = Regex.run(~r/^(fb\d+)-mb\d+$/, mb_id, capture: :all_but_first)
 
     spec = %{
@@ -183,6 +185,7 @@ defmodule SymphonyElixir.AipdAdapterTest do
         "max_retries" => 3,
         "on_retry_limit" => "route_to_recovery"
       },
+      "execution_provider" => execution_provider,
       "prompt_feedback" => %{
         "include_last_verification_digest" => true,
         "include_last_failure_reason" => true,
@@ -231,21 +234,23 @@ defmodule SymphonyElixir.AipdAdapterTest do
     File.write!(Path.join(dir, "attempt_finish_gate_outcome.json"), Jason.encode!(outcome))
   end
 
-  defp start_gate(mb_id, action, may_start) do
+  defp start_gate(mb_id, action, may_start, provider) do
     %{
       "schema_version" => "1.0",
       "gate" => "attempt_start",
       "mb_id" => mb_id,
-      "attempt_id" => if(action == "dispatch_codex", do: "attempt-001", else: nil),
+      "attempt_id" => if(action in ["dispatch_codex", "dispatch_agent"], do: "attempt-001", else: nil),
       "aipd_decision" => %{
-        "status" => if(action == "dispatch_codex", do: "authorized", else: "blocked"),
-        "issue_type" => if(action == "dispatch_codex", do: nil, else: "spec_gap"),
-        "route_to" => if(action == "dispatch_codex", do: nil, else: "spec_architect"),
-        "next_action" => "start_codex"
+        "status" => if(action in ["dispatch_codex", "dispatch_agent"], do: "authorized", else: "blocked"),
+        "issue_type" => if(action in ["dispatch_codex", "dispatch_agent"], do: nil, else: "spec_gap"),
+        "route_to" => if(action in ["dispatch_codex", "dispatch_agent"], do: nil, else: "spec_architect"),
+        "next_action" => "start_agent"
       },
       "symphony_instruction" => %{
         "action" => action,
+        "may_start_agent" => may_start,
         "may_start_codex" => may_start,
+        "execution_provider" => provider,
         "retryable" => false,
         "retry_after_ms" => nil
       },
@@ -269,7 +274,9 @@ defmodule SymphonyElixir.AipdAdapterTest do
       },
       "symphony_instruction" => %{
         "action" => action,
+        "may_start_agent" => false,
         "may_start_codex" => false,
+        "execution_provider" => nil,
         "retryable" => false,
         "retry_after_ms" => nil
       },

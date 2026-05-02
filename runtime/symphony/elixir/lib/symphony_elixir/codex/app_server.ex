@@ -16,6 +16,7 @@ defmodule SymphonyElixir.Codex.AppServer do
   @type session :: %{
           port: port(),
           metadata: map(),
+          provider: String.t(),
           approval_policy: String.t() | map(),
           auto_approve_requests: boolean(),
           thread_sandbox: String.t(),
@@ -39,17 +40,19 @@ defmodule SymphonyElixir.Codex.AppServer do
   @spec start_session(Path.t(), keyword()) :: {:ok, session()} | {:error, term()}
   def start_session(workspace, opts \\ []) do
     worker_host = Keyword.get(opts, :worker_host)
+    provider = Keyword.get(opts, :provider, Config.default_execution_provider())
 
     with {:ok, expanded_workspace} <- validate_workspace_cwd(workspace, worker_host),
-         {:ok, port} <- start_port(expanded_workspace, worker_host) do
-      metadata = port_metadata(port, worker_host)
+         {:ok, port} <- start_port(expanded_workspace, provider, worker_host) do
+      metadata = port_metadata(port, provider, worker_host)
 
-      with {:ok, session_policies} <- session_policies(expanded_workspace, worker_host),
+      with {:ok, session_policies} <- session_policies(provider, expanded_workspace, worker_host),
            {:ok, thread_id} <- do_start_session(port, expanded_workspace, session_policies) do
         {:ok,
          %{
            port: port,
            metadata: metadata,
+           provider: provider,
            approval_policy: session_policies.approval_policy,
            auto_approve_requests: session_policies.approval_policy == "never",
            thread_sandbox: session_policies.thread_sandbox,
@@ -186,7 +189,7 @@ defmodule SymphonyElixir.Codex.AppServer do
     end
   end
 
-  defp start_port(workspace, nil) do
+  defp start_port(workspace, provider, nil) do
     executable = System.find_executable("bash")
 
     if is_nil(executable) do
@@ -199,7 +202,7 @@ defmodule SymphonyElixir.Codex.AppServer do
             :binary,
             :exit_status,
             :stderr_to_stdout,
-            args: [~c"-lc", String.to_charlist(Config.settings!().codex.command)],
+            args: [~c"-lc", String.to_charlist(Config.command_for_provider(provider))],
             cd: String.to_charlist(workspace),
             line: @port_line_bytes
           ]
@@ -209,27 +212,27 @@ defmodule SymphonyElixir.Codex.AppServer do
     end
   end
 
-  defp start_port(workspace, worker_host) when is_binary(worker_host) do
-    remote_command = remote_launch_command(workspace)
+  defp start_port(workspace, provider, worker_host) when is_binary(worker_host) do
+    remote_command = remote_launch_command(workspace, provider)
     SSH.start_port(worker_host, remote_command, line: @port_line_bytes)
   end
 
-  defp remote_launch_command(workspace) when is_binary(workspace) do
+  defp remote_launch_command(workspace, provider) when is_binary(workspace) do
     [
       "cd #{shell_escape(workspace)}",
-      "exec #{Config.settings!().codex.command}"
+      "exec #{Config.command_for_provider(provider)}"
     ]
     |> Enum.join(" && ")
   end
 
-  defp port_metadata(port, worker_host) when is_port(port) do
+  defp port_metadata(port, provider, worker_host) when is_port(port) do
     base_metadata =
       case :erlang.port_info(port, :os_pid) do
         {:os_pid, os_pid} ->
-          %{codex_app_server_pid: to_string(os_pid)}
+          %{codex_app_server_pid: to_string(os_pid), execution_provider: provider}
 
         _ ->
-          %{}
+          %{execution_provider: provider}
       end
 
     case worker_host do
@@ -262,12 +265,12 @@ defmodule SymphonyElixir.Codex.AppServer do
     end
   end
 
-  defp session_policies(workspace, nil) do
-    Config.codex_runtime_settings(workspace)
+  defp session_policies(provider, workspace, nil) do
+    Config.agent_runtime_settings(provider, workspace)
   end
 
-  defp session_policies(workspace, worker_host) when is_binary(worker_host) do
-    Config.codex_runtime_settings(workspace, remote: true)
+  defp session_policies(provider, workspace, worker_host) when is_binary(worker_host) do
+    Config.agent_runtime_settings(provider, workspace, remote: true)
   end
 
   defp do_start_session(port, workspace, session_policies) do
@@ -1012,7 +1015,7 @@ defmodule SymphonyElixir.Codex.AppServer do
   end
 
   defp metadata_from_message(port, payload) do
-    port |> port_metadata(nil) |> maybe_set_usage(payload)
+    port |> port_metadata("unknown", nil) |> maybe_set_usage(payload)
   end
 
   defp maybe_set_usage(metadata, payload) when is_map(payload) do

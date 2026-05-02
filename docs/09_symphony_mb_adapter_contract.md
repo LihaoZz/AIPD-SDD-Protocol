@@ -60,6 +60,10 @@ Candidate MBs must have:
 - a non-terminal state, or no runtime state yet
 - no unresolved `blocked_by_mbs` dependency
 
+Provider routing policy remains AIPD-owned. MB machine specs may define a
+provider policy, but Symphony must consume only the concrete provider selected
+by AIPD for the current attempt.
+
 ## Claim Semantics
 
 Claiming an MB means asking AIPD for an `attempt_start` gate outcome.
@@ -68,9 +72,13 @@ The adapter must:
 
 1. run or request the AIPD `attempt_start` gate
 2. validate the returned gate outcome against `schemas/aipd-gate-outcome.schema.json`
-3. start Codex only when `symphony_instruction.action == dispatch_codex`
-4. start Codex only when `symphony_instruction.may_start_codex == true`
-5. otherwise follow the returned action and never infer a different route
+3. start an execution provider only when `symphony_instruction.action` is `dispatch_agent` or legacy `dispatch_codex`
+4. start the execution provider only when `symphony_instruction.may_start_agent == true`
+5. when `dispatch_agent` is used, require `symphony_instruction.execution_provider`
+6. otherwise follow the returned action and never infer a different route
+
+AIPD decides the concrete provider at `attempt_start`. Symphony must not add its
+own difficulty heuristic, fallback heuristic, or retry-based provider switch.
 
 Claiming does not transfer semantic authority to Symphony.
 
@@ -110,6 +118,7 @@ Minimum dashboard fields:
 - `aipd_decision.issue_type`
 - `aipd_decision.route_to`
 - `symphony_instruction.action`
+- `symphony_instruction.execution_provider`
 - `symphony_instruction.retryable`
 - `evidence_refs`
 - `state_ref`
@@ -124,7 +133,8 @@ Symphony must stop before Codex launch when:
 - the gate outcome file is missing
 - the gate outcome is malformed
 - the gate outcome fails schema validation
-- `may_start_codex` is true but `action` is not `dispatch_codex`
+- `may_start_agent` is true but `action` is neither `dispatch_agent` nor legacy `dispatch_codex`
+- `dispatch_agent` is present but `execution_provider` is missing or unknown
 - the action is unknown
 - required evidence refs are missing
 - AIPD state and adapter state disagree
@@ -191,6 +201,9 @@ Adapter 只能从 AIPD 工件读取候选 MB：
 - 状态不是终态，或还没有 runtime state
 - 没有未解决的 `blocked_by_mbs` 依赖
 
+provider routing policy 仍然由 AIPD 持有。MB machine spec 可以定义 provider
+policy，但 Symphony 只能消费 AIPD 为当前 attempt 选出的具体 provider。
+
 ### Claim 语义
 
 Claim 一个 MB，意思是向 AIPD 请求 `attempt_start` gate outcome。
@@ -199,9 +212,13 @@ Adapter 必须：
 
 1. 运行或请求 AIPD `attempt_start` gate
 2. 用 `schemas/aipd-gate-outcome.schema.json` 校验返回结果
-3. 只有当 `symphony_instruction.action == dispatch_codex` 时才启动 Codex
-4. 只有当 `symphony_instruction.may_start_codex == true` 时才启动 Codex
-5. 其他情况按返回 action 处理，不得自行推断另一条路由
+3. 只有当 `symphony_instruction.action` 为 `dispatch_agent` 或兼容旧值 `dispatch_codex` 时才启动执行 provider
+4. 只有当 `symphony_instruction.may_start_agent == true` 时才启动执行 provider
+5. 当 action 为 `dispatch_agent` 时，必须要求 `symphony_instruction.execution_provider`
+6. 其他情况按返回 action 处理，不得自行推断另一条路由
+
+具体 provider 必须由 AIPD 在 `attempt_start` 阶段决定。Symphony 不得自行增加
+难度判断、fallback heuristic 或基于 retry 的 provider 切换。
 
 Claim 不会把语义权威转移给 Symphony。
 
@@ -239,6 +256,7 @@ Dashboard 最少字段：
 - `aipd_decision.issue_type`
 - `aipd_decision.route_to`
 - `symphony_instruction.action`
+- `symphony_instruction.execution_provider`
 - `symphony_instruction.retryable`
 - `evidence_refs`
 - `state_ref`
@@ -253,7 +271,8 @@ Dashboard 行只是观察层，不能覆盖 AIPD state 文件。
 - gate outcome 文件缺失
 - gate outcome 格式错误
 - gate outcome 未通过 schema 校验
-- `may_start_codex` 为 true，但 `action` 不是 `dispatch_codex`
+- `may_start_agent` 为 true，但 `action` 既不是 `dispatch_agent` 也不是兼容旧值 `dispatch_codex`
+- `dispatch_agent` 已出现，但 `execution_provider` 缺失或非法
 - action 未知
 - 必需 evidence refs 缺失
 - AIPD state 和 adapter state 不一致

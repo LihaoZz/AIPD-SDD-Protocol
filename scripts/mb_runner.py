@@ -73,6 +73,89 @@ def effective_autonomy_level(spec: dict[str, Any]) -> str:
     return spec.get("autonomy_level", "L2_auto_with_review")
 
 
+def provider_policy(spec: dict[str, Any]) -> dict[str, Any]:
+    raw_policy = spec.get("provider_policy") or {}
+    legacy_provider = spec.get("execution_provider")
+    default_provider = raw_policy.get("default_provider", legacy_provider or "minimax")
+    if default_provider not in {"codex", "minimax"}:
+        raise ValueError(f"Unsupported provider_policy.default_provider: {default_provider}")
+
+    force_codex_when = raw_policy.get("force_codex_when", [])
+    valid_force_reasons = {
+        "protocol_change",
+        "state_machine_change",
+        "multi_subsystem_change",
+        "high_risk_migration",
+        "deep_debugging",
+    }
+    invalid_force_reasons = [reason for reason in force_codex_when if reason not in valid_force_reasons]
+    if invalid_force_reasons:
+        raise ValueError(f"Unsupported provider_policy.force_codex_when: {invalid_force_reasons}")
+
+    escalate_to = raw_policy.get("escalate_to", "codex")
+    if escalate_to != "codex":
+        raise ValueError(f"Unsupported provider_policy.escalate_to: {escalate_to}")
+
+    escalate_on_issue_types = raw_policy.get(
+        "escalate_on_issue_types",
+        ["implementation_bug", "quality_evidence_gap"],
+    )
+    valid_issue_types = {"implementation_bug", "quality_evidence_gap"}
+    invalid_issue_types = [issue_type for issue_type in escalate_on_issue_types if issue_type not in valid_issue_types]
+    if invalid_issue_types:
+        raise ValueError(f"Unsupported provider_policy.escalate_on_issue_types: {invalid_issue_types}")
+
+    escalate_after_failures = int(raw_policy.get("escalate_after_minimax_failures", 2))
+    if escalate_after_failures < 1:
+        raise ValueError("provider_policy.escalate_after_minimax_failures must be >= 1")
+
+    return {
+        "default_provider": default_provider,
+        "force_codex_when": force_codex_when,
+        "escalate_to": escalate_to,
+        "escalate_after_minimax_failures": escalate_after_failures,
+        "escalate_on_issue_types": escalate_on_issue_types,
+    }
+
+
+def selected_execution_provider(spec: dict[str, Any], state: dict[str, Any]) -> tuple[str, str]:
+    policy = provider_policy(spec)
+    force_codex_when = policy["force_codex_when"]
+    if force_codex_when:
+        return "codex", f"force_codex_when={','.join(force_codex_when)}"
+
+    default_provider = policy["default_provider"]
+    if default_provider != "minimax":
+        return default_provider, f"default_provider={default_provider}"
+
+    minimax_failures = int((state.get("provider_failure_counts") or {}).get("minimax", 0))
+    threshold = policy["escalate_after_minimax_failures"]
+    last_issue_type = state.get("last_failure_issue_type")
+    if minimax_failures >= threshold and last_issue_type in set(policy["escalate_on_issue_types"]):
+        return policy["escalate_to"], f"escalated_after_minimax_failures={minimax_failures}"
+
+    return "minimax", "default_provider=minimax"
+
+
+def provider_command(provider: str, codex_command: str, minimax_command: str | None) -> str:
+    if provider == "codex":
+        return codex_command
+    if provider == "minimax":
+        return minimax_command or codex_command
+    raise ValueError(f"Unsupported execution provider: {provider}")
+
+
+def increment_provider_counter(state: dict[str, Any], counter_key: str, provider: str) -> None:
+    counters = state.setdefault(counter_key, {"codex": 0, "minimax": 0})
+    for known_provider in ("codex", "minimax"):
+        counters.setdefault(known_provider, 0)
+    counters[provider] += 1
+
+
+def set_failure_issue_type(state: dict[str, Any], issue_type: str | None) -> None:
+    state["last_failure_issue_type"] = issue_type
+
+
 def classify_execution_failure(message_text: str, changed_files: list[str]) -> dict[str, str] | None:
     lower = message_text.lower()
     explicit_routes = {
@@ -277,7 +360,8 @@ def build_gate_outcome(
     route_to: str | None,
     next_action: str,
     action: str,
-    may_start_codex: bool,
+    may_start_agent: bool,
+    execution_provider: str | None,
     retryable: bool,
     retry_after_ms: int | None,
     reason: str,
@@ -297,7 +381,9 @@ def build_gate_outcome(
         },
         "symphony_instruction": {
             "action": action,
-            "may_start_codex": may_start_codex,
+            "may_start_agent": may_start_agent,
+            "may_start_codex": may_start_agent,
+            "execution_provider": execution_provider,
             "retryable": retryable,
             "retry_after_ms": retry_after_ms,
         },
@@ -344,7 +430,8 @@ def record_attempt_start_rejection(
         route_to=route_to,
         next_action=next_action,
         action=action,
-        may_start_codex=False,
+        may_start_agent=False,
+        execution_provider=None,
         retryable=retryable,
         retry_after_ms=1000 if retryable else None,
         reason=reason,
@@ -437,6 +524,7 @@ def attempt_start(
     spec: dict[str, Any],
     state: dict[str, Any],
     codex_command: str,
+    minimax_command: str | None,
     model: str | None,
     json_output: bool,
 ) -> dict[str, Any]:
@@ -455,6 +543,7 @@ def attempt_start(
         return {"status": "stop", "exit_code": 1}
 
     attempt_id = next_attempt_id(project_root, mb_id)
+    provider, routing_reason = selected_execution_provider(spec, state)
     locks, lock_conflict = acquire_locks(project_root, spec, attempt_id)
     if lock_conflict is not None:
         record_attempt_start_rejection(
@@ -480,14 +569,28 @@ def attempt_start(
     before = snapshot_workspace(project_root)
     before_path = current_attempt_dir / "before_snapshot.json"
     write_json(before_path, before)
+    provider_routing_path = current_attempt_dir / "provider_routing.json"
+    write_json(
+        provider_routing_path,
+        {
+            "selected_provider": provider,
+            "reason": routing_reason,
+            "provider_policy": provider_policy(spec),
+            "provider_attempt_counts": state.get("provider_attempt_counts", {}),
+            "provider_failure_counts": state.get("provider_failure_counts", {}),
+            "last_failure_issue_type": state.get("last_failure_issue_type"),
+        },
+    )
 
     state.update(
         {
             "status": "running",
             "last_attempt_id": attempt_id,
             "next_action": "await_codex_result",
+            "last_execution_provider": provider,
         }
     )
+    increment_provider_counter(state, "provider_attempt_counts", provider)
     write_state(project_root, state)
 
     start_outcome = build_gate_outcome(
@@ -497,27 +600,36 @@ def attempt_start(
         status="authorized",
         issue_type=None,
         route_to=None,
-        next_action="start_codex",
-        action="dispatch_codex",
-        may_start_codex=True,
+        next_action="start_agent",
+        action="dispatch_agent",
+        may_start_agent=True,
+        execution_provider=provider,
         retryable=False,
         retry_after_ms=None,
         reason="MB preflight passed, runtime state is ready, and attempt execution is authorized.",
         evidence_refs=[
             str(mb_preflight_path(project_root, mb_id).relative_to(project_root)),
             str(before_path.relative_to(project_root)),
+            str(provider_routing_path.relative_to(project_root)),
         ],
         state_ref=str(runtime_state_path(project_root, mb_id).relative_to(project_root)),
     )
     write_gate_outcome(attempt_gate_outcome_path(current_attempt_dir, "attempt_start"), start_outcome)
 
-    command = build_codex_exec_command(project_root, current_attempt_dir, codex_command, model, json_output)
+    command = build_codex_exec_command(
+        project_root,
+        current_attempt_dir,
+        provider_command(provider, codex_command, minimax_command),
+        model,
+        json_output,
+    )
     pre_hook = run_pre_tool_hook(project_root, spec, current_attempt_dir, command)
     if pre_hook["status"] != "pass":
         state.update(
             {
                 "status": "blocked",
                 "last_failure_reason": "hook_pre_block",
+                "last_failure_issue_type": "environment_issue",
                 "review_required": False,
                 "next_action": "inspect_pre_tool_hook",
             }
@@ -555,9 +667,9 @@ def record_attempt_finish_outcome(
     project_root: Path,
     spec: dict[str, Any],
     attempt_id: str,
-    current_attempt_dir: Path,
-    status: str,
-    issue_type: str | None,
+        current_attempt_dir: Path,
+        status: str,
+        issue_type: str | None,
     route_to: str | None,
     next_action: str,
     action: str,
@@ -575,7 +687,8 @@ def record_attempt_finish_outcome(
         route_to=route_to,
         next_action=next_action,
         action=action,
-        may_start_codex=False,
+        may_start_agent=False,
+        execution_provider=None,
         retryable=retryable,
         retry_after_ms=retry_after_ms,
         reason=reason,
@@ -613,6 +726,7 @@ def attempt_finish(
                 "status": "routed_to_recovery",
                 "retry_count": state["retry_count"] + 1,
                 "last_failure_reason": "scope_violation",
+                "last_failure_issue_type": "state_drift",
                 "last_verification_report_path": None,
                 "last_verification_digest": None,
                 "review_required": False,
@@ -663,6 +777,7 @@ def attempt_finish(
             {
                 "status": "routed_to_recovery",
                 "last_failure_reason": issue_type,
+                "last_failure_issue_type": issue_type,
                 "review_required": False,
                 "next_action": "route_to_recovery",
             }
@@ -712,11 +827,12 @@ def attempt_finish(
         if stop_hook["status"] != "pass":
             state.update(
                 {
-                    "status": "blocked",
-                    "last_failure_reason": "stop_hook_blocked",
-                    "review_required": False,
-                    "next_action": "inspect_stop_hook",
-                }
+                "status": "blocked",
+                "last_failure_reason": "stop_hook_blocked",
+                "last_failure_issue_type": "environment_issue",
+                "review_required": False,
+                "next_action": "inspect_stop_hook",
+            }
             )
             write_state(project_root, state)
             sync_session_state(project_root, spec["parent_fb_id"], state)
@@ -741,6 +857,7 @@ def attempt_finish(
                 "last_verification_report_path": str(report_path.relative_to(project_root)),
                 "last_verification_digest": build_verification_digest(report),
                 "last_failure_reason": None,
+                "last_failure_issue_type": None,
                 "review_required": autonomy_level in {"L1_human_approval", "L2_auto_with_review"},
                 "next_action": next_action,
             }
@@ -770,7 +887,10 @@ def attempt_finish(
     state["last_verification_report_path"] = str(report_path.relative_to(project_root))
     state["last_verification_digest"] = build_verification_digest(report)
     state["last_failure_reason"] = report["summary"]
+    state["last_failure_issue_type"] = "implementation_bug"
     state["review_required"] = False
+    if state.get("last_execution_provider") in {"codex", "minimax"}:
+        increment_provider_counter(state, "provider_failure_counts", state["last_execution_provider"])
     retry_limit_reached = state["retry_count"] >= spec["retry_policy"]["max_retries"]
     append_failure_log(
         project_root,
@@ -835,6 +955,7 @@ def run_once(
     project_root: Path,
     mb_id: str,
     codex_command: str,
+    minimax_command: str | None,
     model: str | None,
     dry_run: bool,
     stream_output: bool,
@@ -873,6 +994,7 @@ def run_once(
             {
                 "status": "blocked",
                 "last_failure_reason": "human_approval_required",
+                "last_failure_issue_type": "review_context_gap",
                 "review_required": True,
                 "next_action": "await_human_approval",
             }
@@ -898,6 +1020,7 @@ def run_once(
             spec,
             state,
             codex_command,
+            minimax_command,
             model,
             json_output,
         )
@@ -939,6 +1062,7 @@ def main() -> int:
     parser.add_argument("--project-root", required=True)
     parser.add_argument("--mb-id", required=True)
     parser.add_argument("--codex-command", default="codex")
+    parser.add_argument("--minimax-command")
     parser.add_argument("--model")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--stream-codex-output", action="store_true")
@@ -950,6 +1074,7 @@ def main() -> int:
         resolve_path(args.project_root),
         args.mb_id,
         args.codex_command,
+        args.minimax_command,
         args.model,
         args.dry_run,
         args.stream_codex_output,

@@ -11,7 +11,9 @@
   },
   "symphony_instruction": {
     "action": "release_to_review",
+    "may_start_agent": false,
     "may_start_codex": false,
+    "execution_provider": null,
     "retryable": false,
     "retry_after_ms": null
   },

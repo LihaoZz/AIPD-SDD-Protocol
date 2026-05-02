@@ -108,6 +108,14 @@ defmodule SymphonyElixir.TestSupport do
           max_turns: 20,
           max_retry_backoff_ms: 300_000,
           max_concurrent_agents_by_state: %{},
+          agent_runtime_default_provider: nil,
+          agent_runtime_providers: nil,
+          agent_runtime_approval_policy: nil,
+          agent_runtime_thread_sandbox: nil,
+          agent_runtime_turn_sandbox_policy: nil,
+          agent_runtime_turn_timeout_ms: nil,
+          agent_runtime_read_timeout_ms: nil,
+          agent_runtime_stall_timeout_ms: nil,
           codex_command: "codex app-server",
           codex_approval_policy: %{reject: %{sandbox_approval: true, rules: true, mcp_elicitations: true}},
           codex_thread_sandbox: "workspace-write",
@@ -146,6 +154,14 @@ defmodule SymphonyElixir.TestSupport do
     max_turns = Keyword.get(config, :max_turns)
     max_retry_backoff_ms = Keyword.get(config, :max_retry_backoff_ms)
     max_concurrent_agents_by_state = Keyword.get(config, :max_concurrent_agents_by_state)
+    agent_runtime_default_provider = Keyword.get(config, :agent_runtime_default_provider)
+    agent_runtime_providers = Keyword.get(config, :agent_runtime_providers)
+    agent_runtime_approval_policy = Keyword.get(config, :agent_runtime_approval_policy)
+    agent_runtime_thread_sandbox = Keyword.get(config, :agent_runtime_thread_sandbox)
+    agent_runtime_turn_sandbox_policy = Keyword.get(config, :agent_runtime_turn_sandbox_policy)
+    agent_runtime_turn_timeout_ms = Keyword.get(config, :agent_runtime_turn_timeout_ms)
+    agent_runtime_read_timeout_ms = Keyword.get(config, :agent_runtime_read_timeout_ms)
+    agent_runtime_stall_timeout_ms = Keyword.get(config, :agent_runtime_stall_timeout_ms)
     codex_command = Keyword.get(config, :codex_command)
     codex_approval_policy = Keyword.get(config, :codex_approval_policy)
     codex_thread_sandbox = Keyword.get(config, :codex_thread_sandbox)
@@ -187,6 +203,16 @@ defmodule SymphonyElixir.TestSupport do
         "  max_turns: #{yaml_value(max_turns)}",
         "  max_retry_backoff_ms: #{yaml_value(max_retry_backoff_ms)}",
         "  max_concurrent_agents_by_state: #{yaml_value(max_concurrent_agents_by_state)}",
+        agent_runtime_yaml(
+          agent_runtime_default_provider,
+          agent_runtime_providers,
+          agent_runtime_approval_policy,
+          agent_runtime_thread_sandbox,
+          agent_runtime_turn_sandbox_policy,
+          agent_runtime_turn_timeout_ms,
+          agent_runtime_read_timeout_ms,
+          agent_runtime_stall_timeout_ms
+        ),
         "codex:",
         "  command: #{yaml_value(codex_command)}",
         "  approval_policy: #{yaml_value(codex_approval_policy)}",
@@ -228,19 +254,48 @@ defmodule SymphonyElixir.TestSupport do
 
   defp yaml_value(value), do: yaml_value(to_string(value))
 
-  defp hooks_yaml(nil, nil, nil, nil, timeout_ms), do: "hooks:\n  timeout_ms: #{yaml_value(timeout_ms)}"
+  defp agent_runtime_yaml(nil, nil, nil, nil, nil, nil, nil, nil), do: nil
+
+  defp agent_runtime_yaml(
+         default_provider,
+         providers,
+         approval_policy,
+         thread_sandbox,
+         turn_sandbox_policy,
+         turn_timeout_ms,
+         read_timeout_ms,
+         stall_timeout_ms
+       ) do
+    [
+      "agent_runtime:",
+      !is_nil(default_provider) && "  default_provider: #{yaml_value(default_provider)}",
+      !is_nil(providers) && "  providers: #{yaml_value(providers)}",
+      !is_nil(approval_policy) && "  approval_policy: #{yaml_value(approval_policy)}",
+      !is_nil(thread_sandbox) && "  thread_sandbox: #{yaml_value(thread_sandbox)}",
+      !is_nil(turn_sandbox_policy) && "  turn_sandbox_policy: #{yaml_value(turn_sandbox_policy)}",
+      !is_nil(turn_timeout_ms) && "  turn_timeout_ms: #{yaml_value(turn_timeout_ms)}",
+      !is_nil(read_timeout_ms) && "  read_timeout_ms: #{yaml_value(read_timeout_ms)}",
+      !is_nil(stall_timeout_ms) && "  stall_timeout_ms: #{yaml_value(stall_timeout_ms)}"
+    ]
+    |> Enum.reject(&(&1 in [nil, false]))
+    |> Enum.join("\n")
+  end
 
   defp hooks_yaml(hook_after_create, hook_before_run, hook_after_run, hook_before_remove, timeout_ms) do
-    [
-      "hooks:",
-      "  timeout_ms: #{yaml_value(timeout_ms)}",
-      hook_entry("after_create", hook_after_create),
-      hook_entry("before_run", hook_before_run),
-      hook_entry("after_run", hook_after_run),
-      hook_entry("before_remove", hook_before_remove)
-    ]
-    |> Enum.reject(&is_nil/1)
-    |> Enum.join("\n")
+    if Enum.all?([hook_after_create, hook_before_run, hook_after_run, hook_before_remove], &is_nil/1) do
+      "hooks:\n  timeout_ms: #{yaml_value(timeout_ms)}"
+    else
+      [
+        "hooks:",
+        "  timeout_ms: #{yaml_value(timeout_ms)}",
+        hook_entry("after_create", hook_after_create),
+        hook_entry("before_run", hook_before_run),
+        hook_entry("after_run", hook_after_run),
+        hook_entry("before_remove", hook_before_remove)
+      ]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join("\n")
+    end
   end
 
   defp worker_yaml(ssh_hosts, max_concurrent_agents_per_host)

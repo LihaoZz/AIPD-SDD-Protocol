@@ -13,10 +13,14 @@
     "last_verification_report_path",
     "last_verification_digest",
     "last_failure_reason",
+    "last_failure_issue_type",
     "autonomy_level",
     "approval_status",
     "review_required",
     "next_action",
+    "provider_attempt_counts",
+    "provider_failure_counts",
+    "last_execution_provider",
     "updated_at",
     "timezone_name"
   ],
@@ -69,6 +73,21 @@
         "null"
       ]
     },
+    "last_failure_issue_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "spec_gap",
+        "implementation_bug",
+        "quality_evidence_gap",
+        "state_drift",
+        "environment_issue",
+        "review_context_gap",
+        null
+      ]
+    },
     "autonomy_level": {
       "type": "string",
       "enum": [
@@ -91,6 +110,53 @@
     "next_action": {
       "type": "string",
       "minLength": 1
+    },
+    "provider_attempt_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "codex",
+        "minimax"
+      ],
+      "properties": {
+        "codex": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimax": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "provider_failure_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "codex",
+        "minimax"
+      ],
+      "properties": {
+        "codex": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimax": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "last_execution_provider": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "codex",
+        "minimax",
+        null
+      ]
     },
     "updated_at": {
       "type": "string",

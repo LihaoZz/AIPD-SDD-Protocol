@@ -183,6 +183,98 @@ defmodule SymphonyElixir.AppServerTest do
     end
   end
 
+  test "app server starts the configured provider command" do
+    test_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-app-server-provider-command-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      workspace_root = Path.join(test_root, "workspaces")
+      workspace = Path.join(workspace_root, "MT-1002")
+      codex_binary = Path.join(test_root, "fake-codex")
+      minimax_binary = Path.join(test_root, "fake-minimax")
+      trace_file = Path.join(test_root, "provider-command.trace")
+      previous_trace = System.get_env("SYMP_TEST_PROVIDER_TRACE")
+
+      on_exit(fn ->
+        if is_binary(previous_trace) do
+          System.put_env("SYMP_TEST_PROVIDER_TRACE", previous_trace)
+        else
+          System.delete_env("SYMP_TEST_PROVIDER_TRACE")
+        end
+      end)
+
+      System.put_env("SYMP_TEST_PROVIDER_TRACE", trace_file)
+      File.mkdir_p!(workspace)
+
+      Enum.each([{"codex", codex_binary}, {"minimax", minimax_binary}], fn {name, path} ->
+        File.write!(path, """
+        #!/bin/sh
+        trace_file="${SYMP_TEST_PROVIDER_TRACE:-/tmp/provider-command.trace}"
+        count=0
+        printf 'PROVIDER:#{name} ARGV:%s\\n' "$*" >> "$trace_file"
+
+        while IFS= read -r line; do
+          count=$((count + 1))
+          printf 'JSON:%s\\n' "$line" >> "$trace_file"
+
+          case "$count" in
+            1)
+              printf '%s\\n' '{"id":1,"result":{}}'
+              ;;
+            2)
+              printf '%s\\n' '{"id":2,"result":{"thread":{"id":"thread-provider"}}}'
+              ;;
+            3)
+              printf '%s\\n' '{"id":3,"result":{"turn":{"id":"turn-provider"}}}'
+              ;;
+            4)
+              printf '%s\\n' '{"method":"turn/completed"}'
+              exit 0
+              ;;
+            *)
+              exit 0
+              ;;
+          esac
+        done
+        """)
+
+        File.chmod!(path, 0o755)
+      end)
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        agent_runtime_default_provider: "codex",
+        agent_runtime_providers: %{
+          codex: %{command: "#{codex_binary} app-server"},
+          minimax: %{command: "#{minimax_binary} app-server"}
+        },
+        agent_runtime_approval_policy: "never",
+        agent_runtime_thread_sandbox: "workspace-write"
+      )
+
+      issue = %Issue{
+        id: "issue-provider-command",
+        identifier: "MT-1002",
+        title: "Validate provider command selection",
+        description: "Ensure runtime launches the requested provider command",
+        state: "In Progress",
+        url: "https://example.org/issues/MT-1002",
+        labels: ["backend"]
+      }
+
+      assert {:ok, _result} = AppServer.run(workspace, "Use minimax", issue, provider: "minimax")
+
+      trace = File.read!(trace_file)
+      assert trace =~ "PROVIDER:minimax"
+      refute trace =~ "PROVIDER:codex"
+    after
+      File.rm_rf(test_root)
+    end
+  end
+
   test "app server marks request-for-input events as a hard failure" do
     test_root =
       Path.join(

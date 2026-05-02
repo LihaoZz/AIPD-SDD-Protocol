@@ -83,7 +83,7 @@ defmodule SymphonyElixir.Aipd.Adapter do
     with {:ok, root} <- aipd_root(),
          :ok <- ensure_start_gate(root, mb_id),
          {:ok, outcome} <- GateOutcome.load(start_gate_path(root, mb_id)),
-         :ok <- require_action(outcome, "dispatch_codex"),
+         :ok <- require_action(outcome),
          :ok <- require_may_start(outcome) do
       :ok
     end
@@ -107,6 +107,17 @@ defmodule SymphonyElixir.Aipd.Adapter do
 
   @spec aipd_tracker?() :: boolean()
   def aipd_tracker?, do: Config.settings!().tracker.kind == "aipd_mb"
+
+  @spec execution_provider(Issue.t()) :: {:ok, String.t()} | {:error, term()}
+  def execution_provider(%Issue{id: mb_id}) when is_binary(mb_id) do
+    with {:ok, root} <- aipd_root(),
+         {:ok, outcome} <- GateOutcome.load(start_gate_path(root, mb_id)),
+         {:ok, provider} <- extract_execution_provider(outcome) do
+      {:ok, provider}
+    end
+  end
+
+  def execution_provider(_), do: {:error, :invalid_aipd_issue}
 
   defp aipd_root do
     case Config.settings!().tracker.aipd_root do
@@ -205,12 +216,23 @@ defmodule SymphonyElixir.Aipd.Adapter do
     end
   end
 
-  defp require_action(%{"symphony_instruction" => %{"action" => action}}, expected) when action == expected, do: :ok
-  defp require_action(%{"symphony_instruction" => %{"action" => action}}, expected), do: {:error, {:unexpected_aipd_action, action, expected}}
-  defp require_action(_, expected), do: {:error, {:missing_aipd_action, expected}}
+  defp require_action(%{"symphony_instruction" => %{"action" => action}})
+       when action in ["dispatch_agent", "dispatch_codex"],
+       do: :ok
 
-  defp require_may_start(%{"symphony_instruction" => %{"may_start_codex" => true}}), do: :ok
-  defp require_may_start(_), do: {:error, :aipd_gate_denied_codex_start}
+  defp require_action(%{"symphony_instruction" => %{"action" => action}}),
+    do: {:error, {:unexpected_aipd_action, action, ["dispatch_agent", "dispatch_codex"]}}
+
+  defp require_action(_), do: {:error, {:missing_aipd_action, ["dispatch_agent", "dispatch_codex"]}}
+
+  defp require_may_start(%{"symphony_instruction" => instruction}) when is_map(instruction) do
+    case Map.get(instruction, "may_start_agent", Map.get(instruction, "may_start_codex")) do
+      true -> :ok
+      _ -> {:error, :aipd_gate_denied_agent_start}
+    end
+  end
+
+  defp require_may_start(_), do: {:error, :aipd_gate_denied_agent_start}
 
   defp require_finish_action(%{"symphony_instruction" => %{"action" => action}}) when action in @finish_actions, do: :ok
   defp require_finish_action(%{"symphony_instruction" => %{"action" => action}}), do: {:error, {:unknown_finish_action, action}}
@@ -222,7 +244,7 @@ defmodule SymphonyElixir.Aipd.Adapter do
   defp safe_name(value), do: value |> to_string() |> String.replace(~r/[^A-Za-z0-9_.-]/, "_")
 
   defp generate_start_gate(root, mb_id) do
-    run_bridge(["attempt-start", "--project-root", root, "--mb-id", mb_id, "--codex-command", Config.settings!().codex.command])
+    run_bridge(["attempt-start", "--project-root", root, "--mb-id", mb_id, "--agent-command", Config.command_for_provider("codex")])
   end
 
   defp ensure_start_gate(root, mb_id) do
@@ -258,6 +280,18 @@ defmodule SymphonyElixir.Aipd.Adapter do
       do: :ok,
       else: generate_finish_gate(root, workspace_root, mb_id, summary)
   end
+
+  defp extract_execution_provider(%{"symphony_instruction" => %{"execution_provider" => provider}})
+       when provider in ["codex", "minimax"],
+       do: {:ok, provider}
+
+  defp extract_execution_provider(%{"symphony_instruction" => %{"action" => "dispatch_codex"}}),
+    do: {:ok, "codex"}
+
+  defp extract_execution_provider(%{"symphony_instruction" => %{"action" => "dispatch_agent"}}),
+    do: {:error, :missing_execution_provider}
+
+  defp extract_execution_provider(_), do: {:error, :missing_execution_provider}
 
   defp latest_attempt_id(root, mb_id) do
     root

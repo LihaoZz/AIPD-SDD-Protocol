@@ -37,10 +37,14 @@ def default_state(mb_id: str) -> dict[str, Any]:
         "last_verification_report_path": None,
         "last_verification_digest": None,
         "last_failure_reason": None,
+        "last_failure_issue_type": None,
         "autonomy_level": "L2_auto_with_review",
         "approval_status": "not_required",
         "review_required": False,
         "next_action": "run",
+        "provider_attempt_counts": {"codex": 0, "minimax": 0},
+        "provider_failure_counts": {"codex": 0, "minimax": 0},
+        "last_execution_provider": None,
         "updated_at": local_timestamp(),
         "timezone_name": local_timezone_name(),
     }
@@ -94,6 +98,7 @@ def sync_session_state(project_root: Path, parent_fb_id: str, state: dict[str, A
 - `autonomy_level`: {state["autonomy_level"]}
 - `approval_status`: {state["approval_status"]}
 - `review_required`: {"yes" if state["review_required"] else "no"}
+- `last_execution_provider`: {state["last_execution_provider"] or "none"}
 - `runtime_state_ref`: runtime/state/{state["mb_id"]}.state.json
 - `last_attempt_id`: {state["last_attempt_id"] or "none"}
 - `last_verification_report_path`: {state["last_verification_report_path"] or "none"}

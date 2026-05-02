@@ -200,6 +200,108 @@ defmodule SymphonyElixir.Config.Schema do
     end
   end
 
+  defmodule AgentRuntime do
+    @moduledoc false
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    @default_providers %{
+      "codex" => %{"command" => "codex app-server"}
+    }
+
+    @primary_key false
+    embedded_schema do
+      field(:default_provider, :string, default: "codex")
+      field(:providers, :map, default: @default_providers)
+
+      field(:approval_policy, StringOrMap,
+        default: %{
+          "reject" => %{
+            "sandbox_approval" => true,
+            "rules" => true,
+            "mcp_elicitations" => true
+          }
+        }
+      )
+
+      field(:thread_sandbox, :string, default: "workspace-write")
+      field(:turn_sandbox_policy, :map)
+      field(:turn_timeout_ms, :integer, default: 3_600_000)
+      field(:read_timeout_ms, :integer, default: 5_000)
+      field(:stall_timeout_ms, :integer, default: 300_000)
+    end
+
+    @spec changeset(%__MODULE__{}, map()) :: Ecto.Changeset.t()
+    def changeset(schema, attrs) do
+      schema
+      |> cast(
+        attrs,
+        [
+          :default_provider,
+          :providers,
+          :approval_policy,
+          :thread_sandbox,
+          :turn_sandbox_policy,
+          :turn_timeout_ms,
+          :read_timeout_ms,
+          :stall_timeout_ms
+        ],
+        empty_values: []
+      )
+      |> validate_required([:default_provider, :providers])
+      |> validate_change(:providers, &validate_providers/2)
+      |> validate_default_provider()
+      |> validate_number(:turn_timeout_ms, greater_than: 0)
+      |> validate_number(:read_timeout_ms, greater_than: 0)
+      |> validate_number(:stall_timeout_ms, greater_than_or_equal_to: 0)
+    end
+
+    defp validate_providers(:providers, providers) when is_map(providers) and map_size(providers) > 0 do
+      Enum.flat_map(providers, fn {provider_name, config} ->
+        provider_name = to_string(provider_name)
+
+        cond do
+          String.trim(provider_name) == "" ->
+            [providers: "provider names must not be blank"]
+
+          not is_map(config) ->
+            [providers: "provider #{provider_name} must be a map"]
+
+          not valid_command?(Map.get(config, "command") || Map.get(config, :command)) ->
+            [providers: "provider #{provider_name} requires a non-empty command"]
+
+          true ->
+            []
+        end
+      end)
+    end
+
+    defp validate_providers(:providers, _providers), do: [providers: "must be a non-empty map"]
+
+    defp validate_default_provider(changeset) do
+      provider_name = to_string(get_field(changeset, :default_provider) || "")
+      providers = get_field(changeset, :providers)
+
+      cond do
+        String.trim(provider_name) == "" ->
+          add_error(changeset, :default_provider, "must not be blank")
+
+        is_map(providers) and not Map.has_key?(normalize_provider_map(providers), provider_name) ->
+          add_error(changeset, :default_provider, "must reference a configured provider")
+
+        true ->
+          changeset
+      end
+    end
+
+    defp valid_command?(command) when is_binary(command), do: String.trim(command) != ""
+    defp valid_command?(_command), do: false
+
+    defp normalize_provider_map(providers) do
+      Enum.into(providers, %{}, fn {key, value} -> {to_string(key), value} end)
+    end
+  end
+
   defmodule Hooks do
     @moduledoc false
     use Ecto.Schema
@@ -268,6 +370,7 @@ defmodule SymphonyElixir.Config.Schema do
     embeds_one(:workspace, Workspace, on_replace: :update, defaults_to_struct: true)
     embeds_one(:worker, Worker, on_replace: :update, defaults_to_struct: true)
     embeds_one(:agent, Agent, on_replace: :update, defaults_to_struct: true)
+    embeds_one(:agent_runtime, AgentRuntime, on_replace: :update, defaults_to_struct: true)
     embeds_one(:codex, Codex, on_replace: :update, defaults_to_struct: true)
     embeds_one(:hooks, Hooks, on_replace: :update, defaults_to_struct: true)
     embeds_one(:observability, Observability, on_replace: :update, defaults_to_struct: true)
@@ -360,6 +463,7 @@ defmodule SymphonyElixir.Config.Schema do
     |> cast_embed(:workspace, with: &Workspace.changeset/2)
     |> cast_embed(:worker, with: &Worker.changeset/2)
     |> cast_embed(:agent, with: &Agent.changeset/2)
+    |> cast_embed(:agent_runtime, with: &AgentRuntime.changeset/2)
     |> cast_embed(:codex, with: &Codex.changeset/2)
     |> cast_embed(:hooks, with: &Hooks.changeset/2)
     |> cast_embed(:observability, with: &Observability.changeset/2)
@@ -379,13 +483,101 @@ defmodule SymphonyElixir.Config.Schema do
       | root: resolve_path_value(settings.workspace.root, Path.join(System.tmp_dir!(), "symphony_workspaces"))
     }
 
+    agent_runtime =
+      finalize_agent_runtime(
+        settings.agent_runtime,
+        settings.codex
+      )
+
+    codex_provider =
+      agent_runtime.providers
+      |> Map.get("codex", %{"command" => "codex app-server"})
+
     codex = %{
       settings.codex
-      | approval_policy: normalize_keys(settings.codex.approval_policy),
-        turn_sandbox_policy: normalize_optional_map(settings.codex.turn_sandbox_policy)
+      | command: Map.get(codex_provider, "command", settings.codex.command),
+        approval_policy: agent_runtime.approval_policy,
+        thread_sandbox: agent_runtime.thread_sandbox,
+        turn_sandbox_policy: agent_runtime.turn_sandbox_policy,
+        turn_timeout_ms: agent_runtime.turn_timeout_ms,
+        read_timeout_ms: agent_runtime.read_timeout_ms,
+        stall_timeout_ms: agent_runtime.stall_timeout_ms
     }
 
-    %{settings | tracker: tracker, workspace: workspace, codex: codex}
+    %{settings | tracker: tracker, workspace: workspace, agent_runtime: agent_runtime, codex: codex}
+  end
+
+  defp finalize_agent_runtime(agent_runtime, codex) do
+    providers =
+      agent_runtime.providers
+      |> normalize_provider_configs()
+      |> inject_legacy_codex_provider(codex.command)
+
+    default_approval_policy = %{
+      "reject" => %{
+        "sandbox_approval" => true,
+        "rules" => true,
+        "mcp_elicitations" => true
+      }
+    }
+
+    %{
+      agent_runtime
+      | default_provider: to_string(agent_runtime.default_provider || "codex"),
+        providers: providers,
+        approval_policy:
+          normalize_keys(
+            prefer_legacy_value(
+              agent_runtime.approval_policy,
+              codex.approval_policy,
+              default_approval_policy
+            )
+          ),
+        turn_sandbox_policy:
+          normalize_optional_map(
+            prefer_legacy_value(agent_runtime.turn_sandbox_policy, codex.turn_sandbox_policy, nil)
+          ),
+        thread_sandbox:
+          prefer_legacy_value(agent_runtime.thread_sandbox, codex.thread_sandbox, "workspace-write"),
+        turn_timeout_ms:
+          prefer_legacy_value(agent_runtime.turn_timeout_ms, codex.turn_timeout_ms, 3_600_000),
+        read_timeout_ms:
+          prefer_legacy_value(agent_runtime.read_timeout_ms, codex.read_timeout_ms, 5_000),
+        stall_timeout_ms:
+          prefer_legacy_value(agent_runtime.stall_timeout_ms, codex.stall_timeout_ms, 300_000)
+    }
+  end
+
+  defp normalize_provider_configs(providers) when is_map(providers) do
+    Enum.into(providers, %{}, fn {provider_name, provider_config} ->
+      command =
+        case provider_config do
+          %{} = config -> Map.get(config, "command") || Map.get(config, :command)
+          _ -> nil
+        end
+
+      {to_string(provider_name), %{"command" => command}}
+    end)
+  end
+
+  defp normalize_provider_configs(_providers), do: %{}
+
+  defp inject_legacy_codex_provider(providers, command) when is_binary(command) do
+    Map.update(providers, "codex", %{"command" => command}, fn existing ->
+      case Map.get(existing, "command") do
+        "codex app-server" when command != "codex app-server" -> Map.put(existing, "command", command)
+        existing_command when is_binary(existing_command) and existing_command != "" -> existing
+        _ -> Map.put(existing, "command", command)
+      end
+    end)
+  end
+
+  defp prefer_legacy_value(agent_value, legacy_value, default_value) do
+    if agent_value == default_value and legacy_value != default_value do
+      legacy_value
+    else
+      agent_value
+    end
   end
 
   defp normalize_keys(value) when is_map(value) do

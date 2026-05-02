@@ -1,0 +1,480 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="3600" viewBox="0 0 2400 3600" role="img" aria-labelledby="title desc">
+  <title id="title">AIPD complete lifecycle from root Codex chat to product completion</title>
+  <desc id="desc">A detailed AIPD operating map covering startup truth artifacts, external UI handoff, Symphony MB polling, AIPD gate routing, review, recovery, and closure.</desc>
+  <defs>
+    <style>
+      .bg { fill: #fbfaf4; }
+      .title { font: 800 38px "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #17212b; }
+      .subtitle { font: 400 19px "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #475569; }
+      .section-title { font: 800 24px "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #17212b; }
+      .label { font: 800 18px "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #17212b; }
+      .body { font: 400 16px "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #26313d; }
+      .small { font: 400 14px "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #526273; }
+      .tiny { font: 400 12px "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #64748b; }
+      .lane { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 26; ry: 26; }
+      .phase { fill: #fffdf7; stroke: #d6cdb7; stroke-width: 2; rx: 28; ry: 28; }
+      .node { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.8; rx: 20; ry: 20; }
+      .human { fill: #fff7ed; stroke: #ea580c; stroke-width: 2; rx: 20; ry: 20; }
+      .truth { fill: #ecfeff; stroke: #0891b2; stroke-width: 2; rx: 20; ry: 20; }
+      .gate { fill: #eff6ff; stroke: #2563eb; stroke-width: 2.4; rx: 22; ry: 22; }
+      .runtime { fill: #f0fdf4; stroke: #16a34a; stroke-width: 2; rx: 20; ry: 20; }
+      .risk { fill: #fff1f2; stroke: #e11d48; stroke-width: 2; rx: 20; ry: 20; }
+      .review { fill: #f8fafc; stroke: #64748b; stroke-width: 2; rx: 20; ry: 20; }
+      .external { fill: #fffbeb; stroke: #d97706; stroke-width: 2; rx: 20; ry: 20; }
+      .closure { fill: #f5f3ff; stroke: #7c3aed; stroke-width: 2; rx: 20; ry: 20; }
+      .legend { fill: #ffffff; stroke: #d1d5db; stroke-width: 1.6; rx: 16; ry: 16; }
+      .line { stroke: #475569; stroke-width: 2.4; fill: none; }
+      .soft { stroke: #94a3b8; stroke-width: 2; fill: none; }
+      .dash { stroke: #64748b; stroke-width: 2; fill: none; stroke-dasharray: 8 7; }
+      .orange { stroke: #d97706; }
+      .blue { stroke: #2563eb; }
+      .green { stroke: #16a34a; }
+      .red { stroke: #e11d48; }
+      .purple { stroke: #7c3aed; }
+      .divider { stroke: #e2e8f0; stroke-width: 1.4; stroke-dasharray: 6 6; }
+      .tag { font: 800 13px "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #ffffff; }
+      .tag-bg { rx: 12; ry: 12; }
+    </style>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#475569" />
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#2563eb" />
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#16a34a" />
+    </marker>
+    <marker id="arrowOrange" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#d97706" />
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#e11d48" />
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="2400" height="3600" />
+
+  <text class="title" x="1200" y="58" text-anchor="middle">AIPD 完整链路总图：从根 Codex 聊天到产品开发完毕</text>
+  <text class="subtitle" x="1200" y="91" text-anchor="middle">核心原则：AIPD 管语义、真理源、审批、路由和质量；Symphony 只做轮询、调度、并发、重试和执行机械层</text>
+
+  <rect class="legend" x="88" y="118" width="2224" height="72" />
+  <rect class="human" x="120" y="140" width="26" height="26" />
+  <text class="small" x="158" y="159">人工 / 根聊天决策</text>
+  <rect class="truth" x="360" y="140" width="26" height="26" />
+  <text class="small" x="398" y="159">PROJECT_ROOT 真理源工件</text>
+  <rect class="external" x="650" y="140" width="26" height="26" />
+  <text class="small" x="688" y="159">外部 UI / prompt handoff</text>
+  <rect class="runtime" x="930" y="140" width="26" height="26" />
+  <text class="small" x="968" y="159">Symphony / Harness 执行层</text>
+  <rect class="gate" x="1235" y="140" width="26" height="26" />
+  <text class="small" x="1273" y="159">AIPD gate 判定</text>
+  <rect class="review" x="1490" y="140" width="26" height="26" />
+  <text class="small" x="1528" y="159">Review / evidence</text>
+  <rect class="risk" x="1715" y="140" width="26" height="26" />
+  <text class="small" x="1753" y="159">阻塞 / 路由 / Recovery</text>
+  <rect class="closure" x="1980" y="140" width="26" height="26" />
+  <text class="small" x="2018" y="159">完成 / 下一轮</text>
+
+  <!-- Lanes -->
+  <rect class="lane" x="70" y="230" width="360" height="3270" />
+  <rect class="lane" x="470" y="230" width="420" height="3270" />
+  <rect class="lane" x="930" y="230" width="420" height="3270" />
+  <rect class="lane" x="1390" y="230" width="420" height="3270" />
+  <rect class="lane" x="1850" y="230" width="480" height="3270" />
+
+  <text class="section-title" x="250" y="270" text-anchor="middle">1. 根 Codex 聊天</text>
+  <text class="section-title" x="680" y="270" text-anchor="middle">2. 规格与真理源</text>
+  <text class="section-title" x="1140" y="270" text-anchor="middle">3. UI Handoff / MB 准备</text>
+  <text class="section-title" x="1600" y="270" text-anchor="middle">4. Symphony 执行闭环</text>
+  <text class="section-title" x="2090" y="270" text-anchor="middle">5. 路由、Review、Closure</text>
+
+  <!-- Phase 1 -->
+  <rect class="human" x="100" y="320" width="300" height="134" />
+  <text class="label" x="250" y="352" text-anchor="middle">用户输入最小启动信息</text>
+  <text class="body" x="250" y="381" text-anchor="middle">Protocol Root</text>
+  <text class="body" x="250" y="405" text-anchor="middle">Project Root / scene</text>
+  <text class="small" x="250" y="429" text-anchor="middle">product idea / feature / blocker / review target</text>
+
+  <rect class="node" x="100" y="505" width="300" height="154" />
+  <text class="label" x="250" y="536" text-anchor="middle">Codex 读取启动路径</text>
+  <text class="body" x="250" y="565" text-anchor="middle">README.md</text>
+  <text class="body" x="250" y="589" text-anchor="middle">docs/00_lifecycle.md</text>
+  <text class="body" x="250" y="613" text-anchor="middle">docs/06_session_bootstrap.md</text>
+  <text class="small" x="250" y="637" text-anchor="middle">跑 MB 时再读 HARNESS.md</text>
+
+  <rect class="gate" x="100" y="710" width="300" height="154" />
+  <text class="label" x="250" y="741" text-anchor="middle">Project Preflight</text>
+  <text class="body" x="250" y="770" text-anchor="middle">检查 foundational files</text>
+  <text class="body" x="250" y="794" text-anchor="middle">判断 scene 能否开始</text>
+  <text class="small" x="250" y="818" text-anchor="middle">ready / bootstrap_required / blocked</text>
+  <text class="small" x="250" y="842" text-anchor="middle">blocked 只问最小必要缺口</text>
+
+  <rect class="node" x="100" y="915" width="300" height="168" />
+  <text class="label" x="250" y="946" text-anchor="middle">Scene Path 分流</text>
+  <text class="body" x="250" y="974" text-anchor="middle">greenfield: discovery -> spec</text>
+  <text class="body" x="250" y="998" text-anchor="middle">expansion: delta spec</text>
+  <text class="body" x="250" y="1022" text-anchor="middle">continue / review / recovery</text>
+  <text class="small" x="250" y="1048" text-anchor="middle">按 lifecycle 激活 Spec / Builder / Reviewer</text>
+
+  <line class="line" x1="250" y1="454" x2="250" y2="505" marker-end="url(#arrow)" />
+  <line class="line" x1="250" y1="659" x2="250" y2="710" marker-end="url(#arrow)" />
+  <line class="line" x1="250" y1="864" x2="250" y2="915" marker-end="url(#arrow)" />
+
+  <!-- Phase 2 Truth preparation -->
+  <rect class="truth" x="500" y="320" width="360" height="170" />
+  <text class="label" x="680" y="351" text-anchor="middle">建立 PROJECT_ROOT</text>
+  <text class="body" x="680" y="380" text-anchor="middle">真实产品状态在外部项目根</text>
+  <text class="body" x="680" y="404" text-anchor="middle">不是 Product-Dev 协议仓库</text>
+  <text class="small" x="680" y="430" text-anchor="middle">PROTOCOL_ROOT: 规则 / 模板 / scripts</text>
+  <text class="small" x="680" y="452" text-anchor="middle">RUNTIME_ROOT: runtime/symphony</text>
+  <text class="small" x="680" y="474" text-anchor="middle">PROJECT_ROOT: 产品 truth + code</text>
+
+  <rect class="truth" x="500" y="540" width="360" height="220" />
+  <text class="label" x="680" y="571" text-anchor="middle">写基础真理源</text>
+  <text class="body" x="680" y="600" text-anchor="middle">CONSTITUTION.md: 产品意图 / 边界</text>
+  <text class="body" x="680" y="624" text-anchor="middle">SCOPE.md: 当前范围 / 验收</text>
+  <text class="body" x="680" y="648" text-anchor="middle">DECISIONS.md: 取舍与拒绝项</text>
+  <text class="body" x="680" y="672" text-anchor="middle">QUALITY_RULEBOOK.md: 质量标准</text>
+  <text class="body" x="680" y="696" text-anchor="middle">SESSION_STATE.md: 当前阶段 / 下一步</text>
+  <text class="small" x="680" y="725" text-anchor="middle">这些文件替代聊天记忆，成为可恢复上下文</text>
+
+  <rect class="truth" x="500" y="810" width="360" height="224" />
+  <text class="label" x="680" y="841" text-anchor="middle">Spec Architect 建 FB</text>
+  <text class="body" x="680" y="870" text-anchor="middle">8 元本体：Actor / Goal / Entity</text>
+  <text class="body" x="680" y="894" text-anchor="middle">Relation / State / Event / Rule / Evidence</text>
+  <text class="body" x="680" y="918" text-anchor="middle">8 层影响面 + acceptance</text>
+  <text class="body" x="680" y="942" text-anchor="middle">experience_delivery_mode</text>
+  <text class="small" x="680" y="971" text-anchor="middle">FB 是产品锚点，不是尝试日志</text>
+  <text class="small" x="680" y="995" text-anchor="middle">输出：function_blocks/&lt;fb_id&gt;.md</text>
+
+  <rect class="truth" x="500" y="1084" width="360" height="220" />
+  <text class="label" x="680" y="1115" text-anchor="middle">拆 MB 与 machine sidecar</text>
+  <text class="body" x="680" y="1144" text-anchor="middle">每个 MB 继承一个父 FB</text>
+  <text class="body" x="680" y="1168" text-anchor="middle">声明目标 / allowed files / evidence</text>
+  <text class="body" x="680" y="1192" text-anchor="middle">missions/&lt;mb_id&gt;.md</text>
+  <text class="body" x="680" y="1216" text-anchor="middle">missions/&lt;mb_id&gt;.machine.json</text>
+  <text class="small" x="680" y="1245" text-anchor="middle">sidecar 才能被 harness / Symphony 执行</text>
+  <text class="small" x="680" y="1269" text-anchor="middle">包含并发、依赖、eval、重试等机器字段</text>
+
+  <path class="line" d="M400 999 C435 999, 455 405, 500 405" marker-end="url(#arrow)" />
+  <line class="line" x1="680" y1="490" x2="680" y2="540" marker-end="url(#arrow)" />
+  <line class="line" x1="680" y1="760" x2="680" y2="810" marker-end="url(#arrow)" />
+  <line class="line" x1="680" y1="1034" x2="680" y2="1084" marker-end="url(#arrow)" />
+
+  <!-- Phase 3 UI handoff -->
+  <rect class="gate" x="960" y="320" width="360" height="180" />
+  <text class="label" x="1140" y="351" text-anchor="middle">体验交付 Gate</text>
+  <text class="body" x="1140" y="380" text-anchor="middle">FB 中必须写 experience_delivery_mode</text>
+  <text class="body" x="1140" y="404" text-anchor="middle">builder_generated / external_ui_package</text>
+  <text class="body" x="1140" y="428" text-anchor="middle">hybrid / not_applicable</text>
+  <text class="small" x="1140" y="456" text-anchor="middle">它发生在 SPEC 或 FB_DETAILING 内</text>
+  <text class="small" x="1140" y="478" text-anchor="middle">不是一个可以跳过的额外环节</text>
+
+  <rect class="node" x="960" y="550" width="360" height="168" />
+  <text class="label" x="1140" y="581" text-anchor="middle">A. Builder-owned / N/A</text>
+  <text class="body" x="1140" y="610" text-anchor="middle">无需外包 UI 或由 Builder 负责</text>
+  <text class="body" x="1140" y="634" text-anchor="middle">直接进入 MB 执行准备</text>
+  <text class="small" x="1140" y="662" text-anchor="middle">仍受 FB / MB / QUALITY_RULEBOOK 约束</text>
+  <text class="small" x="1140" y="684" text-anchor="middle">Builder 不从聊天即兴扩范围</text>
+
+  <rect class="external" x="960" y="768" width="360" height="252" />
+  <text class="label" x="1140" y="799" text-anchor="middle">B. 外部 UI package / hybrid</text>
+  <text class="body" x="1140" y="828" text-anchor="middle">必要时先 research：参考 / 工具 / 风格</text>
+  <text class="body" x="1140" y="852" text-anchor="middle">system-triggered research 需用户批准</text>
+  <text class="body" x="1140" y="876" text-anchor="middle">用户确认视觉方向、设计核心、UI 决策</text>
+  <text class="body" x="1140" y="900" text-anchor="middle">写 experience_prompts/*.md</text>
+  <text class="body" x="1140" y="924" text-anchor="middle">外部工具返回后由用户批准</text>
+  <text class="small" x="1140" y="954" text-anchor="middle">批准包只管 experience presentation</text>
+  <text class="small" x="1140" y="978" text-anchor="middle">不覆盖 ontology / acceptance / quality gates</text>
+
+  <rect class="truth" x="960" y="1070" width="360" height="234" />
+  <text class="label" x="1140" y="1101" text-anchor="middle">把外包结果回流成输入工件</text>
+  <text class="body" x="1140" y="1130" text-anchor="middle">FB: experience_input_artifacts</text>
+  <text class="body" x="1140" y="1154" text-anchor="middle">FB: experience_builder_scope</text>
+  <text class="body" x="1140" y="1178" text-anchor="middle">MB: input_artifacts / input_ready_check</text>
+  <text class="body" x="1140" y="1202" text-anchor="middle">MB: external_tool_prompt_ref</text>
+  <text class="small" x="1140" y="1232" text-anchor="middle">依赖输入未就绪时，MB 不得激活</text>
+  <text class="small" x="1140" y="1256" text-anchor="middle">后续 MB 是集成切片，不是重做视觉设计</text>
+
+  <path class="line blue" d="M860 922 C900 922, 918 410, 960 410" marker-end="url(#arrowBlue)" />
+  <line class="line blue" x1="1140" y1="500" x2="1140" y2="550" marker-end="url(#arrowBlue)" />
+  <line class="line orange" x1="1140" y1="718" x2="1140" y2="768" marker-end="url(#arrowOrange)" />
+  <line class="line orange" x1="1140" y1="1020" x2="1140" y2="1070" marker-end="url(#arrowOrange)" />
+
+  <!-- MB ready bridge -->
+  <rect class="gate" x="540" y="1368" width="740" height="128" />
+  <text class="label" x="910" y="1401" text-anchor="middle">MB 激活前统一检查</text>
+  <text class="body" x="910" y="1430" text-anchor="middle">当前 FB / 当前 MB / machine spec / input artifacts / eval assets / approval / concurrency metadata 全部可读且一致</text>
+  <text class="small" x="910" y="1458" text-anchor="middle">缺任何关键输入：不让 Builder 或 Symphony 凭猜测开工，必须进入 AIPD 路由</text>
+  <path class="line" d="M680 1304 C680 1340, 760 1348, 760 1368" marker-end="url(#arrow)" />
+  <path class="line" d="M1140 1304 C1140 1340, 1060 1348, 1060 1368" marker-end="url(#arrow)" />
+
+  <!-- Phase 4 Symphony -->
+  <rect class="runtime" x="1420" y="320" width="360" height="176" />
+  <text class="label" x="1600" y="351" text-anchor="middle">启动 Symphony</text>
+  <text class="body" x="1600" y="380" text-anchor="middle">bootstrap/run_symphony.sh /path/to/project</text>
+  <text class="body" x="1600" y="404" text-anchor="middle">渲染 runtime/symphony.WORKFLOW.md</text>
+  <text class="body" x="1600" y="428" text-anchor="middle">启动 bundled orchestrator</text>
+  <text class="small" x="1600" y="456" text-anchor="middle">这会消耗 Codex/OpenAI 使用额度</text>
+  <text class="small" x="1600" y="478" text-anchor="middle">但不会改变 AIPD 的语义权威</text>
+
+  <rect class="runtime" x="1420" y="548" width="360" height="184" />
+  <text class="label" x="1600" y="579" text-anchor="middle">轮询 AIPD MB Registry</text>
+  <text class="body" x="1600" y="608" text-anchor="middle">读取 missions/*.md</text>
+  <text class="body" x="1600" y="632" text-anchor="middle">读取 missions/*.machine.json</text>
+  <text class="body" x="1600" y="656" text-anchor="middle">读取 runtime/state/*.state.json</text>
+  <text class="small" x="1600" y="684" text-anchor="middle">只选择非终态、无未解依赖的 MB</text>
+  <text class="small" x="1600" y="706" text-anchor="middle">不得从 issue text 猜字段</text>
+
+  <rect class="runtime" x="1420" y="784" width="360" height="178" />
+  <text class="label" x="1600" y="815" text-anchor="middle">并发与锁检查</text>
+  <text class="body" x="1600" y="844" text-anchor="middle">same mb_id 不并发</text>
+  <text class="body" x="1600" y="868" text-anchor="middle">concurrency_group / exclusive_touch</text>
+  <text class="body" x="1600" y="892" text-anchor="middle">shared_write_artifacts / blocked_by_mbs</text>
+  <text class="small" x="1600" y="920" text-anchor="middle">冲突时 defer_retry，不启动 Codex</text>
+  <text class="small" x="1600" y="942" text-anchor="middle">锁只通过 gate outcome 或 recovery 释放</text>
+
+  <rect class="gate" x="1420" y="1014" width="360" height="196" />
+  <text class="label" x="1600" y="1045" text-anchor="middle">attempt_start Gate</text>
+  <text class="body" x="1600" y="1074" text-anchor="middle">运行 MB preflight</text>
+  <text class="body" x="1600" y="1098" text-anchor="middle">检查输入、retry limit、人类批准</text>
+  <text class="body" x="1600" y="1122" text-anchor="middle">创建 attempt_id / 写 running state</text>
+  <text class="body" x="1600" y="1146" text-anchor="middle">返回 aipd-gate-outcome.json</text>
+  <text class="small" x="1600" y="1175" text-anchor="middle">只有 action=dispatch_codex 且 may_start_codex=true 才能启动</text>
+
+  <rect class="runtime" x="1420" y="1262" width="360" height="226" />
+  <text class="label" x="1600" y="1293" text-anchor="middle">Codex App-Server / Builder 执行</text>
+  <text class="body" x="1600" y="1322" text-anchor="middle">读取 FB / MB / input artifacts</text>
+  <text class="body" x="1600" y="1346" text-anchor="middle">按 allowed files 执行最小变更</text>
+  <text class="body" x="1600" y="1370" text-anchor="middle">hooks: pre_tool / post_tool / stop</text>
+  <text class="body" x="1600" y="1394" text-anchor="middle">记录 raw output / changed files</text>
+  <text class="small" x="1600" y="1424" text-anchor="middle">Builder 不可让外部 UI 覆盖 FB/MB 语义</text>
+  <text class="small" x="1600" y="1448" text-anchor="middle">结构性 blocker 必须明示 issue type</text>
+
+  <rect class="runtime" x="1420" y="1540" width="360" height="206" />
+  <text class="label" x="1600" y="1571" text-anchor="middle">Harness 证据生成</text>
+  <text class="body" x="1600" y="1600" text-anchor="middle">scope_guard.py 检查越界</text>
+  <text class="body" x="1600" y="1624" text-anchor="middle">verifier.py 检查 acceptance / eval</text>
+  <text class="body" x="1600" y="1648" text-anchor="middle">写 verification_report.json</text>
+  <text class="body" x="1600" y="1672" text-anchor="middle">生成 last_verification_digest</text>
+  <text class="small" x="1600" y="1702" text-anchor="middle">digest 是 retry 摘要，不是新的 truth 文件</text>
+  <text class="small" x="1600" y="1726" text-anchor="middle">同步 SESSION_STATE / project_memory / failure_log</text>
+
+  <rect class="gate" x="1420" y="1798" width="360" height="190" />
+  <text class="label" x="1600" y="1829" text-anchor="middle">attempt_finish Gate</text>
+  <text class="body" x="1600" y="1858" text-anchor="middle">AIPD 读取证据并分类</text>
+  <text class="body" x="1600" y="1882" text-anchor="middle">passed / retry_allowed / failed</text>
+  <text class="body" x="1600" y="1906" text-anchor="middle">issue_type + route_to + next_action</text>
+  <text class="body" x="1600" y="1930" text-anchor="middle">返回 Symphony 可执行 instruction</text>
+  <text class="small" x="1600" y="1960" text-anchor="middle">进程退出码不能决定 retry/review/recovery/close</text>
+
+  <path class="line green" d="M1280 1432 C1340 1432, 1375 408, 1420 408" marker-end="url(#arrowGreen)" />
+  <line class="line green" x1="1600" y1="496" x2="1600" y2="548" marker-end="url(#arrowGreen)" />
+  <line class="line green" x1="1600" y1="732" x2="1600" y2="784" marker-end="url(#arrowGreen)" />
+  <line class="line blue" x1="1600" y1="962" x2="1600" y2="1014" marker-end="url(#arrowBlue)" />
+  <line class="line green" x1="1600" y1="1210" x2="1600" y2="1262" marker-end="url(#arrowGreen)" />
+  <line class="line green" x1="1600" y1="1488" x2="1600" y2="1540" marker-end="url(#arrowGreen)" />
+  <line class="line blue" x1="1600" y1="1746" x2="1600" y2="1798" marker-end="url(#arrowBlue)" />
+
+  <!-- Result routing -->
+  <rect class="risk" x="1880" y="320" width="420" height="218" />
+  <text class="label" x="2090" y="351" text-anchor="middle">attempt_start 失败路由</text>
+  <text class="body" x="2090" y="380" text-anchor="middle">missing FB/MB/spec: spec_gap -> Spec Architect</text>
+  <text class="body" x="2090" y="404" text-anchor="middle">missing UI/research/prompt: review_context_gap</text>
+  <text class="body" x="2090" y="428" text-anchor="middle">invalid state / active mismatch: state_drift</text>
+  <text class="body" x="2090" y="452" text-anchor="middle">human approval missing: pause_wait_human</text>
+  <text class="body" x="2090" y="476" text-anchor="middle">lock conflict: defer_retry</text>
+  <text class="small" x="2090" y="506" text-anchor="middle">这些路径都不允许偷启 Codex</text>
+
+  <rect class="risk" x="1880" y="590" width="420" height="230" />
+  <text class="label" x="2090" y="621" text-anchor="middle">结构性 blocker 路由</text>
+  <text class="body" x="2090" y="650" text-anchor="middle">spec_gap -> Spec Architect</text>
+  <text class="body" x="2090" y="674" text-anchor="middle">state_drift -> Recovery Coordinator</text>
+  <text class="body" x="2090" y="698" text-anchor="middle">environment_issue -> transient defer 或 recovery</text>
+  <text class="body" x="2090" y="722" text-anchor="middle">review_context_gap -> current scene lead</text>
+  <text class="body" x="2090" y="746" text-anchor="middle">quality_evidence_gap -> Builder</text>
+  <text class="small" x="2090" y="776" text-anchor="middle">禁止模糊地说“回上一步”</text>
+  <text class="small" x="2090" y="798" text-anchor="middle">必须标明 owner 与 next_action</text>
+
+  <rect class="runtime" x="1880" y="872" width="420" height="204" />
+  <text class="label" x="2090" y="903" text-anchor="middle">验证失败但可重试</text>
+  <text class="body" x="2090" y="932" text-anchor="middle">issue_type: implementation_bug</text>
+  <text class="body" x="2090" y="956" text-anchor="middle">或 quality_evidence_gap</text>
+  <text class="body" x="2090" y="980" text-anchor="middle">action: schedule_semantic_retry</text>
+  <text class="body" x="2090" y="1004" text-anchor="middle">下一次 prompt 注入 digest / reason / retry_count</text>
+  <text class="small" x="2090" y="1034" text-anchor="middle">不是 generic try again</text>
+  <text class="small" x="2090" y="1056" text-anchor="middle">超限后 stop_and_route_recovery</text>
+
+  <rect class="review" x="1880" y="1128" width="420" height="194" />
+  <text class="label" x="2090" y="1159" text-anchor="middle">验证通过</text>
+  <text class="body" x="2090" y="1188" text-anchor="middle">L1 / L2: release_to_review</text>
+  <text class="body" x="2090" y="1212" text-anchor="middle">Reviewer 核对 FB / MB / evidence / UI input</text>
+  <text class="body" x="2090" y="1236" text-anchor="middle">L3: 明确允许时 close_mb</text>
+  <text class="small" x="2090" y="1266" text-anchor="middle">review 通过才进入该 MB 的完成状态</text>
+  <text class="small" x="2090" y="1288" text-anchor="middle">review 发现问题则按 ownership 回路由</text>
+
+  <rect class="closure" x="1880" y="1374" width="420" height="206" />
+  <text class="label" x="2090" y="1405" text-anchor="middle">MB Closure</text>
+  <text class="body" x="2090" y="1434" text-anchor="middle">写 runtime/state/&lt;mb_id&gt;.state.json = passed</text>
+  <text class="body" x="2090" y="1458" text-anchor="middle">同步 SESSION_STATE.md</text>
+  <text class="body" x="2090" y="1482" text-anchor="middle">更新 QUALITY_MEMORY / project_memory</text>
+  <text class="body" x="2090" y="1506" text-anchor="middle">释放锁，暴露下一个候选 MB</text>
+  <text class="small" x="2090" y="1536" text-anchor="middle">若还有未完成 MB，回到 Symphony 轮询</text>
+  <text class="small" x="2090" y="1558" text-anchor="middle">若 FB acceptance 全满足，进入 FB / product closure</text>
+
+  <path class="dash red" d="M1780 1112 C1835 1112, 1840 429, 1880 429" marker-end="url(#arrowRed)" />
+  <path class="dash red" d="M1780 1893 C1840 1893, 1838 705, 1880 705" marker-end="url(#arrowRed)" />
+  <path class="line green" d="M1780 1893 C1840 1893, 1838 974, 1880 974" marker-end="url(#arrowGreen)" />
+  <path class="line" d="M1780 1893 C1840 1893, 1838 1225, 1880 1225" marker-end="url(#arrow)" />
+  <line class="line purple" x1="2090" y1="1322" x2="2090" y2="1374" marker-end="url(#arrowPurple)" />
+
+  <!-- Feedback loops -->
+  <path class="dash green" d="M1880 974 C1815 974, 1825 650, 1780 650" marker-end="url(#arrowGreen)" />
+  <text class="tiny" x="1840" y="860" text-anchor="middle">retry/backoff loop</text>
+  <path class="dash purple" d="M1880 1500 C1720 1548, 1480 1530, 1320 1432" marker-end="url(#arrowPurple)" />
+  <text class="tiny" x="1610" y="1518" text-anchor="middle">next MB candidate loop</text>
+
+  <!-- Deep artifact map -->
+  <rect class="phase" x="100" y="1625" width="1220" height="435" />
+  <text class="section-title" x="710" y="1662" text-anchor="middle">真理源与权威顺序：新手必须先看懂这一层</text>
+  <rect class="truth" x="135" y="1700" width="350" height="132" />
+  <text class="label" x="310" y="1731" text-anchor="middle">长期意图层</text>
+  <text class="body" x="310" y="1760" text-anchor="middle">CONSTITUTION.md</text>
+  <text class="small" x="310" y="1786" text-anchor="middle">产品理念、架构边界、不可妥协项</text>
+  <text class="small" x="310" y="1810" text-anchor="middle">避免早期概念在多轮迭代后丢失</text>
+
+  <rect class="truth" x="525" y="1700" width="350" height="132" />
+  <text class="label" x="700" y="1731" text-anchor="middle">当前产品范围</text>
+  <text class="body" x="700" y="1760" text-anchor="middle">SCOPE.md / DECISIONS.md</text>
+  <text class="small" x="700" y="1786" text-anchor="middle">用户可见范围、已采纳决策</text>
+  <text class="small" x="700" y="1810" text-anchor="middle">拒绝项和 tradeoff 也要留痕</text>
+
+  <rect class="truth" x="915" y="1700" width="350" height="132" />
+  <text class="label" x="1090" y="1731" text-anchor="middle">执行锚点</text>
+  <text class="body" x="1090" y="1760" text-anchor="middle">function_blocks / missions</text>
+  <text class="small" x="1090" y="1786" text-anchor="middle">FB 定义产品目标和验收</text>
+  <text class="small" x="1090" y="1810" text-anchor="middle">MB 定义最小可执行切片</text>
+
+  <rect class="review" x="135" y="1870" width="350" height="132" />
+  <text class="label" x="310" y="1901" text-anchor="middle">质量层</text>
+  <text class="body" x="310" y="1930" text-anchor="middle">QUALITY_RULEBOOK / reviews</text>
+  <text class="small" x="310" y="1956" text-anchor="middle">质量标准、证据、review 输出</text>
+  <text class="small" x="310" y="1980" text-anchor="middle">不能靠“感觉完成”</text>
+
+  <rect class="runtime" x="525" y="1870" width="350" height="132" />
+  <text class="label" x="700" y="1901" text-anchor="middle">运行时记忆</text>
+  <text class="body" x="700" y="1930" text-anchor="middle">runtime/memory/*.json</text>
+  <text class="small" x="700" y="1956" text-anchor="middle">project_memory / failure_log</text>
+  <text class="small" x="700" y="1980" text-anchor="middle">QUALITY_MEMORY 只是人类桥接摘要</text>
+
+  <rect class="external" x="915" y="1870" width="350" height="132" />
+  <text class="label" x="1090" y="1901" text-anchor="middle">外部输入层</text>
+  <text class="body" x="1090" y="1930" text-anchor="middle">research / experience_prompts</text>
+  <text class="small" x="1090" y="1956" text-anchor="middle">可影响决策，但不能替代 FB/MB</text>
+  <text class="small" x="1090" y="1980" text-anchor="middle">外部 UI package 只管呈现</text>
+
+  <text class="body" x="710" y="2040" text-anchor="middle">权威顺序：active FB -> active MB -> QUALITY_RULEBOOK -> external UI package / research artifact</text>
+
+  <!-- Route matrix -->
+  <rect class="phase" x="100" y="2110" width="2200" height="500" />
+  <text class="section-title" x="1200" y="2148" text-anchor="middle">不同结果对应的路由路径</text>
+
+  <rect class="gate" x="135" y="2190" width="310" height="130" />
+  <text class="label" x="290" y="2221" text-anchor="middle">缺规格 / 验收矛盾</text>
+  <text class="body" x="290" y="2250" text-anchor="middle">issue_type: spec_gap</text>
+  <text class="body" x="290" y="2274" text-anchor="middle">route_to: Spec Architect</text>
+  <text class="small" x="290" y="2302" text-anchor="middle">修 FB/MB，不让 Builder 猜</text>
+
+  <rect class="risk" x="485" y="2190" width="310" height="130" />
+  <text class="label" x="640" y="2221" text-anchor="middle">状态漂移 / 引用不一致</text>
+  <text class="body" x="640" y="2250" text-anchor="middle">issue_type: state_drift</text>
+  <text class="body" x="640" y="2274" text-anchor="middle">route_to: Recovery Coordinator</text>
+  <text class="small" x="640" y="2302" text-anchor="middle">先修状态再继续</text>
+
+  <rect class="external" x="835" y="2190" width="310" height="130" />
+  <text class="label" x="990" y="2221" text-anchor="middle">缺 UI / research / prompt 输入</text>
+  <text class="body" x="990" y="2250" text-anchor="middle">issue_type: review_context_gap</text>
+  <text class="body" x="990" y="2274" text-anchor="middle">action: release_and_wait_input</text>
+  <text class="small" x="990" y="2302" text-anchor="middle">等用户或外部工具回流</text>
+
+  <rect class="runtime" x="1185" y="2190" width="310" height="130" />
+  <text class="label" x="1340" y="2221" text-anchor="middle">实现错 / 证据缺口</text>
+  <text class="body" x="1340" y="2250" text-anchor="middle">implementation_bug / quality_gap</text>
+  <text class="body" x="1340" y="2274" text-anchor="middle">route_to: Builder</text>
+  <text class="small" x="1340" y="2302" text-anchor="middle">可语义重试，带失败摘要</text>
+
+  <rect class="risk" x="1535" y="2190" width="310" height="130" />
+  <text class="label" x="1690" y="2221" text-anchor="middle">工具链 / 依赖 / IO 问题</text>
+  <text class="body" x="1690" y="2250" text-anchor="middle">issue_type: environment_issue</text>
+  <text class="body" x="1690" y="2274" text-anchor="middle">transient defer 或 recovery</text>
+  <text class="small" x="1690" y="2302" text-anchor="middle">不要伪装成业务失败</text>
+
+  <rect class="closure" x="1885" y="2190" width="310" height="130" />
+  <text class="label" x="2040" y="2221" text-anchor="middle">通过</text>
+  <text class="body" x="2040" y="2250" text-anchor="middle">passed</text>
+  <text class="body" x="2040" y="2274" text-anchor="middle">release_to_review / close_mb</text>
+  <text class="small" x="2040" y="2302" text-anchor="middle">取决于 autonomy_level</text>
+
+  <rect class="review" x="135" y="2380" width="2060" height="176" />
+  <text class="label" x="1165" y="2411" text-anchor="middle">Review Gate 的判定方式</text>
+  <text class="body" x="1165" y="2440" text-anchor="middle">Reviewer 不相信 Builder 总结，必须核对 active FB、active MB、输入工件、scope、quality evidence、verification_report 和必要的外部 UI 消费情况</text>
+  <text class="body" x="1165" y="2466" text-anchor="middle">若发现问题，仍按同一套 issue routing 回到 Spec Architect / Builder / Recovery Coordinator，而不是直接继续堆代码</text>
+  <text class="small" x="1165" y="2496" text-anchor="middle">Review 通过后，才把 MB 视为真正完成；若父 FB 仍有未完成 MB，则 Symphony 继续轮询下一项</text>
+  <text class="small" x="1165" y="2520" text-anchor="middle">当所有 MB 满足父 FB acceptance，并且必要 reviews / state updates / memory sync 完成，才能进入产品级 closure</text>
+
+  <!-- Final lifecycle -->
+  <rect class="phase" x="100" y="2660" width="2200" height="665" />
+  <text class="section-title" x="1200" y="2700" text-anchor="middle">产品开发完毕前的循环：不是一次性跑完，而是可恢复的 FB/MB 闭环</text>
+
+  <rect class="truth" x="145" y="2760" width="340" height="150" />
+  <text class="label" x="315" y="2791" text-anchor="middle">1. 选下一个 FB / MB</text>
+  <text class="body" x="315" y="2820" text-anchor="middle">SESSION_STATE 指向 next_action</text>
+  <text class="body" x="315" y="2844" text-anchor="middle">Symphony 只看可执行候选</text>
+  <text class="small" x="315" y="2872" text-anchor="middle">用户可暂停、调整优先级或追加约束</text>
+
+  <rect class="runtime" x="545" y="2760" width="340" height="150" />
+  <text class="label" x="715" y="2791" text-anchor="middle">2. 执行一个 MB</text>
+  <text class="body" x="715" y="2820" text-anchor="middle">AIPD gate 授权</text>
+  <text class="body" x="715" y="2844" text-anchor="middle">Builder 最小变更 + evidence</text>
+  <text class="small" x="715" y="2872" text-anchor="middle">失败只按显式 routing 处理</text>
+
+  <rect class="review" x="945" y="2760" width="340" height="150" />
+  <text class="label" x="1115" y="2791" text-anchor="middle">3. Review / Recovery</text>
+  <text class="body" x="1115" y="2820" text-anchor="middle">通过则关闭 MB</text>
+  <text class="body" x="1115" y="2844" text-anchor="middle">失败则回到 owner</text>
+  <text class="small" x="1115" y="2872" text-anchor="middle">不能跳过证据门禁</text>
+
+  <rect class="closure" x="1345" y="2760" width="340" height="150" />
+  <text class="label" x="1515" y="2791" text-anchor="middle">4. FB acceptance 汇总</text>
+  <text class="body" x="1515" y="2820" text-anchor="middle">确认父 FB 的验收切片全覆盖</text>
+  <text class="body" x="1515" y="2844" text-anchor="middle">没有遗留 release blocker</text>
+  <text class="small" x="1515" y="2872" text-anchor="middle">必要时追加 MB，而不是扩大旧 MB</text>
+
+  <rect class="closure" x="1745" y="2760" width="340" height="150" />
+  <text class="label" x="1915" y="2791" text-anchor="middle">5. 产品级 Closure</text>
+  <text class="body" x="1915" y="2820" text-anchor="middle">更新 SESSION_STATE / VERSION_LOG</text>
+  <text class="body" x="1915" y="2844" text-anchor="middle">记录下一阶段或发布状态</text>
+  <text class="small" x="1915" y="2872" text-anchor="middle">新会话可从 truth 文件恢复</text>
+
+  <line class="line purple" x1="485" y1="2835" x2="545" y2="2835" marker-end="url(#arrowPurple)" />
+  <line class="line purple" x1="885" y1="2835" x2="945" y2="2835" marker-end="url(#arrowPurple)" />
+  <line class="line purple" x1="1285" y1="2835" x2="1345" y2="2835" marker-end="url(#arrowPurple)" />
+  <line class="line purple" x1="1685" y1="2835" x2="1745" y2="2835" marker-end="url(#arrowPurple)" />
+  <path class="dash purple" d="M1515 2910 C1515 3020, 315 3020, 315 2910" marker-end="url(#arrowPurple)" />
+  <text class="small" x="915" y="3048" text-anchor="middle">父 FB 还没满足：继续拆/跑下一个 MB</text>
+
+  <rect class="closure" x="390" y="3100" width="1620" height="160" />
+  <text class="label" x="1200" y="3133" text-anchor="middle">最终状态：产品开发完毕</text>
+  <text class="body" x="1200" y="3162" text-anchor="middle">所有目标 FB 的 acceptance 已满足；所有必要 MB 已 passed/reviewed/closed；外部 UI 包或 hybrid 输入已被正确消费；质量报告与运行证据可追溯</text>
+  <text class="body" x="1200" y="3188" text-anchor="middle">后续新需求不靠旧聊天继续猜，而是以当前 PROJECT_ROOT 真理源为起点，进入 expansion / continue / review / recovery 的下一轮</text>
+  <text class="small" x="1200" y="3218" text-anchor="middle">AIPD 的价值不是“自动写代码”，而是让每次自动执行都能被准备、约束、验证、回收和恢复</text>
+
+  <!-- Bottom source notes -->
+  <rect class="legend" x="100" y="3370" width="2200" height="104" />
+  <text class="small" x="1200" y="3402" text-anchor="middle">图中概念对应：README.md 三层边界；docs/00_lifecycle.md 生命周期、体验交付、research、gate outcome、issue routing；docs/02_artifacts.md 真理源权威顺序；HARNESS.md 单 MB 执行闭环；docs/09_symphony_mb_adapter_contract.md Symphony adapter 约束。</text>
+  <text class="tiny" x="1200" y="3430" text-anchor="middle">读图顺序：先看 1->2 准备 truth 文件，再看 3 的 UI handoff 分流，再看 4 的 Symphony 自动执行，最后看 5 的路由和 closure。</text>
+  <text class="tiny" x="1200" y="3454" text-anchor="middle">最重要的不变量：外部工具、研究结果、Symphony、Codex 执行结果都不能成为新的最高真理源；它们必须回流到 FB/MB/quality/state 工件后才可继续。</text>
+</svg>

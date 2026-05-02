@@ -1,0 +1,2 @@
+"""MiniMax adapter package."""
+

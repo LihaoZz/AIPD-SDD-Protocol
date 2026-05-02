@@ -23,8 +23,13 @@ workspace:
 agent:
   max_concurrent_agents: 3
   max_turns: 10
-codex:
-  command: codex app-server
+agent_runtime:
+  default_provider: codex
+  providers:
+    codex:
+      command: codex app-server
+    minimax:
+      command: python3 {minimax_adapter_path} app-server
   approval_policy: never
   thread_sandbox: workspace-write
   turn_sandbox_policy:
@@ -63,6 +68,7 @@ def main() -> int:
         TEMPLATE.format(
             project_root=project_root,
             workspace_root=workspace_root,
+            minimax_adapter_path=project_root / "runtime" / "minimax_adapter" / "bin" / "minimax_app_server.py",
         ),
         encoding="utf-8",
     )

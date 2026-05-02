@@ -192,6 +192,59 @@
         "L3_full_auto"
       ]
     },
+    "execution_provider": {
+      "type": "string",
+      "enum": [
+        "codex",
+        "minimax"
+      ]
+    },
+    "provider_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default_provider": {
+          "type": "string",
+          "enum": [
+            "codex",
+            "minimax"
+          ]
+        },
+        "force_codex_when": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "protocol_change",
+              "state_machine_change",
+              "multi_subsystem_change",
+              "high_risk_migration",
+              "deep_debugging"
+            ]
+          }
+        },
+        "escalate_to": {
+          "type": "string",
+          "enum": [
+            "codex"
+          ]
+        },
+        "escalate_after_minimax_failures": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "escalate_on_issue_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "implementation_bug",
+              "quality_evidence_gap"
+            ]
+          }
+        }
+      }
+    },
     "prompt_feedback": {
       "type": "object",
       "additionalProperties": false,

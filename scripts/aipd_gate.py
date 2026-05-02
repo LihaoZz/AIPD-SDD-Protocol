@@ -27,6 +27,10 @@ from mb_runner import (
     issue_route,
     record_attempt_finish_outcome,
     record_attempt_start_rejection,
+    increment_provider_counter,
+    provider_command,
+    selected_execution_provider,
+    set_failure_issue_type,
 )
 from preflight import mb_preflight
 from scope_guard import changed_files, evaluate_scope, snapshot_workspace
@@ -75,7 +79,7 @@ def sync_workspace_changes(workspace_root: Path, project_root: Path, changes: li
                 target.unlink()
 
 
-def run_attempt_start(project_root: Path, mb_id: str, codex_command: str) -> int:
+def run_attempt_start(project_root: Path, mb_id: str, agent_command: str, minimax_command: str | None) -> int:
     spec, state, autonomy_level = prepare_state(project_root, mb_id)
     if state["status"] in {"passed", "routed_to_recovery"}:
         print(json.dumps(state, ensure_ascii=True, indent=2))
@@ -86,6 +90,7 @@ def run_attempt_start(project_root: Path, mb_id: str, codex_command: str) -> int
             {
                 "status": "blocked",
                 "last_failure_reason": "human_approval_required",
+                "last_failure_issue_type": "review_context_gap",
                 "review_required": True,
                 "next_action": "await_human_approval",
             }
@@ -109,7 +114,8 @@ def run_attempt_start(project_root: Path, mb_id: str, codex_command: str) -> int
         mb_id,
         spec,
         state,
-        codex_command,
+        agent_command,
+        minimax_command,
         None,
         False,
     )
@@ -139,11 +145,12 @@ def run_attempt_finish(project_root: Path, workspace_root: Path, mb_id: str, att
 
     changes = changed_files(before, after)
     write_json(current_attempt_dir / "changed_files.json", changes)
+    current_provider = state.get("last_execution_provider") or selected_execution_provider(spec, state)[0]
     execution = {
         "returncode": 0,
         "stdout": summary or "",
         "stderr": "",
-        "command": ["codex", "app-server"],
+        "command": [provider_command(current_provider, "codex", "minimax"), "app-server"],
     }
     write_json(current_attempt_dir / "execution_result.json", execution)
     (current_attempt_dir / "last_message.txt").write_text((summary or "") + "\n", encoding="utf-8")
@@ -159,6 +166,7 @@ def run_attempt_finish(project_root: Path, workspace_root: Path, mb_id: str, att
                 "status": "routed_to_recovery",
                 "retry_count": state["retry_count"] + 1,
                 "last_failure_reason": "scope_violation",
+                "last_failure_issue_type": "state_drift",
                 "last_verification_report_path": None,
                 "last_verification_digest": None,
                 "review_required": False,
@@ -208,6 +216,7 @@ def run_attempt_finish(project_root: Path, workspace_root: Path, mb_id: str, att
             {
                 "status": "routed_to_recovery",
                 "last_failure_reason": issue_type,
+                "last_failure_issue_type": issue_type,
                 "review_required": False,
                 "next_action": "route_to_recovery",
             }
@@ -260,6 +269,7 @@ def run_attempt_finish(project_root: Path, workspace_root: Path, mb_id: str, att
                 {
                     "status": "blocked",
                     "last_failure_reason": "stop_hook_blocked",
+                    "last_failure_issue_type": "environment_issue",
                     "review_required": False,
                     "next_action": "inspect_stop_hook",
                 }
@@ -288,6 +298,7 @@ def run_attempt_finish(project_root: Path, workspace_root: Path, mb_id: str, att
                 "last_verification_report_path": str(report_path.relative_to(project_root)),
                 "last_verification_digest": build_verification_digest(report),
                 "last_failure_reason": None,
+                "last_failure_issue_type": None,
                 "review_required": autonomy_level in {"L1_human_approval", "L2_auto_with_review"},
                 "next_action": next_action,
             }
@@ -317,7 +328,10 @@ def run_attempt_finish(project_root: Path, workspace_root: Path, mb_id: str, att
     state["last_verification_report_path"] = str(report_path.relative_to(project_root))
     state["last_verification_digest"] = build_verification_digest(report)
     state["last_failure_reason"] = report["summary"]
+    state["last_failure_issue_type"] = "implementation_bug"
     state["review_required"] = False
+    if state.get("last_execution_provider") in {"codex", "minimax"}:
+        increment_provider_counter(state, "provider_failure_counts", state["last_execution_provider"])
     retry_limit_reached = state["retry_count"] >= spec["retry_policy"]["max_retries"]
     append_failure_log(
         project_root,
@@ -386,7 +400,9 @@ def main() -> int:
     start_parser = subparsers.add_parser("attempt-start", help="Generate and validate one attempt_start gate outcome.")
     start_parser.add_argument("--project-root", required=True)
     start_parser.add_argument("--mb-id", required=True)
-    start_parser.add_argument("--codex-command", default="codex app-server")
+    start_parser.add_argument("--agent-command", default="codex app-server")
+    start_parser.add_argument("--codex-command", dest="agent_command")
+    start_parser.add_argument("--minimax-command")
 
     finish_parser = subparsers.add_parser("attempt-finish", help="Apply one Symphony workspace result to AIPD state.")
     finish_parser.add_argument("--project-root", required=True)
@@ -398,7 +414,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "attempt-start":
-        return run_attempt_start(resolve_path(args.project_root), args.mb_id, args.codex_command)
+        return run_attempt_start(resolve_path(args.project_root), args.mb_id, args.agent_command, args.minimax_command)
 
     return run_attempt_finish(
         resolve_path(args.project_root),

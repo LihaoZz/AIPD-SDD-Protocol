@@ -127,9 +127,10 @@ defmodule SymphonyElixir.AgentRunner do
     max_turns = Keyword.get(opts, :max_turns, Config.settings!().agent.max_turns)
     issue_state_fetcher = Keyword.get(opts, :issue_state_fetcher, &Tracker.fetch_issue_states_by_ids/1)
     {:ok, collector} = Agent.start_link(fn -> nil end)
+    provider = selected_provider(issue)
 
     result =
-      with {:ok, session} <- AppServer.start_session(workspace, worker_host: worker_host) do
+      with {:ok, session} <- AppServer.start_session(workspace, provider: provider, worker_host: worker_host) do
         try do
           do_run_codex_turns(session, workspace, issue, codex_update_recipient, collector, opts, issue_state_fetcher, 1, max_turns)
         after
@@ -143,6 +144,17 @@ defmodule SymphonyElixir.AgentRunner do
     case result do
       :ok -> {:ok, %{last_message_summary: summary}}
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp selected_provider(issue) do
+    if Aipd.Adapter.aipd_tracker?() do
+      case Aipd.Adapter.execution_provider(issue) do
+        {:ok, provider} -> provider
+        {:error, _reason} -> Config.default_execution_provider()
+      end
+    else
+      Config.default_execution_provider()
     end
   end
 

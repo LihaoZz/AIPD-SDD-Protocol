@@ -21,6 +21,8 @@ defmodule SymphonyElixir.Config do
   """
 
   @type codex_runtime_settings :: %{
+          provider: String.t(),
+          command: String.t(),
           approval_policy: String.t() | map(),
           thread_sandbox: String.t(),
           turn_sandbox_policy: map()
@@ -101,17 +103,38 @@ defmodule SymphonyElixir.Config do
   @spec codex_runtime_settings(Path.t() | nil, keyword()) ::
           {:ok, codex_runtime_settings()} | {:error, term()}
   def codex_runtime_settings(workspace \\ nil, opts \\ []) do
+    agent_runtime_settings(default_execution_provider(), workspace, opts)
+  end
+
+  @spec agent_runtime_settings(String.t(), Path.t() | nil, keyword()) ::
+          {:ok, codex_runtime_settings()} | {:error, term()}
+  def agent_runtime_settings(provider, workspace \\ nil, opts \\ []) do
     with {:ok, settings} <- settings() do
       with {:ok, turn_sandbox_policy} <-
              Schema.resolve_runtime_turn_sandbox_policy(settings, workspace, opts) do
+        provider_name = normalize_provider(provider, settings.agent_runtime.default_provider)
+
         {:ok,
          %{
-           approval_policy: settings.codex.approval_policy,
-           thread_sandbox: settings.codex.thread_sandbox,
+           provider: provider_name,
+           command: command_for_provider(settings, provider_name),
+           approval_policy: settings.agent_runtime.approval_policy,
+           thread_sandbox: settings.agent_runtime.thread_sandbox,
            turn_sandbox_policy: turn_sandbox_policy
          }}
       end
     end
+  end
+
+  @spec command_for_provider(String.t()) :: String.t()
+  def command_for_provider(provider) when is_binary(provider) do
+    settings = settings!()
+    command_for_provider(settings, normalize_provider(provider, settings.agent_runtime.default_provider))
+  end
+
+  @spec default_execution_provider() :: String.t()
+  def default_execution_provider do
+    settings!().agent_runtime.default_provider
   end
 
   defp validate_semantics(settings) do
@@ -152,6 +175,20 @@ defmodule SymphonyElixir.Config do
 
       other ->
         "Invalid WORKFLOW.md config: #{inspect(other)}"
+    end
+  end
+
+  defp command_for_provider(settings, provider) do
+    case get_in(settings.agent_runtime.providers, [provider, "command"]) do
+      command when is_binary(command) and command != "" -> command
+      _ -> raise ArgumentError, message: "Invalid WORKFLOW.md config: missing command for provider #{provider}"
+    end
+  end
+
+  defp normalize_provider(provider, fallback) when is_binary(provider) do
+    case String.trim(provider) do
+      "" -> fallback
+      trimmed -> trimmed
     end
   end
 end

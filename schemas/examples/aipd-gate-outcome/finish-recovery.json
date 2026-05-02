@@ -11,7 +11,9 @@
   },
   "symphony_instruction": {
     "action": "stop_and_route_recovery",
+    "may_start_agent": false,
     "may_start_codex": false,
+    "execution_provider": null,
     "retryable": false,
     "retry_after_ms": null
   },

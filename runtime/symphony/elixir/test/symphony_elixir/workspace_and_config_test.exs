@@ -883,6 +883,29 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
     assert Config.settings!().codex.command == "codex app-server"
   end
 
+  test "config accepts agent_runtime provider maps and exposes provider commands" do
+    write_workflow_file!(Workflow.workflow_file_path(),
+      agent_runtime_default_provider: "codex",
+      agent_runtime_providers: %{
+        codex: %{command: "codex app-server --model gpt-5.3-codex"},
+        minimax: %{command: "python3 /tmp/minimax_app_server.py app-server"}
+      },
+      agent_runtime_approval_policy: "never",
+      agent_runtime_thread_sandbox: "workspace-write",
+      agent_runtime_turn_sandbox_policy: %{type: "workspaceWrite", writableRoots: ["/tmp/workspace"]}
+    )
+
+    config = Config.settings!()
+    assert config.agent_runtime.default_provider == "codex"
+    assert Config.command_for_provider("codex") == "codex app-server --model gpt-5.3-codex"
+    assert Config.command_for_provider("minimax") == "python3 /tmp/minimax_app_server.py app-server"
+
+    assert {:ok, runtime_settings} = Config.agent_runtime_settings("minimax", "/tmp/workspace")
+    assert runtime_settings.provider == "minimax"
+    assert runtime_settings.command == "python3 /tmp/minimax_app_server.py app-server"
+    assert runtime_settings.approval_policy == "never"
+  end
+
   test "config resolves $VAR references for env-backed secret and path values" do
     workspace_env_var = "SYMP_WORKSPACE_ROOT_#{System.unique_integer([:positive])}"
     api_key_env_var = "SYMP_LINEAR_API_KEY_#{System.unique_integer([:positive])}"

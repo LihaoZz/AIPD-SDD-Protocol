@@ -7,11 +7,13 @@
     "status": "authorized",
     "issue_type": null,
     "route_to": null,
-    "next_action": "start_codex"
+    "next_action": "start_agent"
   },
   "symphony_instruction": {
-    "action": "dispatch_codex",
+    "action": "dispatch_agent",
+    "may_start_agent": true,
     "may_start_codex": true,
+    "execution_provider": "codex",
     "retryable": false,
     "retry_after_ms": null
   },

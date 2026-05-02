@@ -15,6 +15,7 @@ defmodule SymphonyElixir.Aipd.GateOutcome do
   @routes ["spec_architect", "builder", "recovery_coordinator", "current_scene_lead"]
 
   @actions [
+    "dispatch_agent",
     "dispatch_codex",
     "defer_retry",
     "schedule_semantic_retry",
@@ -73,17 +74,24 @@ defmodule SymphonyElixir.Aipd.GateOutcome do
 
   defp validate_symphony_instruction(%{} = instruction) do
     with :ok <- require_in(instruction, "action", @actions),
-         :ok <- require_boolean(instruction, "may_start_codex"),
+         :ok <- require_boolean_alias(instruction, "may_start_agent", "may_start_codex"),
+         :ok <- validate_execution_provider(instruction),
          :ok <- require_boolean(instruction, "retryable"),
          :ok <- validate_retry_after(instruction),
-         :ok <- validate_codex_start(instruction) do
+         :ok <- validate_agent_start(instruction) do
       :ok
     end
   end
 
   defp validate_symphony_instruction(_), do: {:error, :invalid_symphony_instruction}
 
-  defp validate_start_semantics(%{"gate" => "attempt_start", "symphony_instruction" => %{"action" => "dispatch_codex"}} = outcome) do
+  defp validate_start_semantics(
+         %{
+           "gate" => "attempt_start",
+           "symphony_instruction" => %{"action" => action}
+         } = outcome
+       )
+       when action in ["dispatch_agent", "dispatch_codex"] do
     with :ok <- require_binary(outcome, "attempt_id"),
          :ok <- require_value(outcome["aipd_decision"], "status", "authorized"),
          :ok <- require_value(outcome["aipd_decision"], "issue_type", nil),
@@ -106,9 +114,35 @@ defmodule SymphonyElixir.Aipd.GateOutcome do
   defp validate_retry_after(%{"retry_after_ms" => value}) when is_integer(value) and value >= 0, do: :ok
   defp validate_retry_after(_), do: {:error, {:missing_or_invalid, "retry_after_ms"}}
 
-  defp validate_codex_start(%{"may_start_codex" => true, "action" => "dispatch_codex"}), do: :ok
-  defp validate_codex_start(%{"may_start_codex" => true, "action" => action}), do: {:error, {:unsafe_codex_start, action}}
-  defp validate_codex_start(_), do: :ok
+  defp validate_execution_provider(%{"action" => action} = instruction)
+       when action in ["dispatch_agent", "dispatch_codex"] do
+    case Map.get(instruction, "execution_provider") do
+      provider when provider in ["codex", "minimax"] -> :ok
+      value -> {:error, {:invalid_execution_provider, value}}
+    end
+  end
+
+  defp validate_execution_provider(%{"execution_provider" => nil}), do: :ok
+  defp validate_execution_provider(%{} = instruction) do
+    if Map.has_key?(instruction, "execution_provider") do
+      {:error, {:invalid_execution_provider, Map.get(instruction, "execution_provider")}}
+    else
+      :ok
+    end
+  end
+
+  defp validate_execution_provider(_), do: {:error, {:missing_or_invalid, "execution_provider"}}
+
+  defp validate_agent_start(instruction) do
+    may_start = Map.get(instruction, "may_start_agent", Map.get(instruction, "may_start_codex", false))
+    action = Map.get(instruction, "action")
+
+    cond do
+      may_start == true and action in ["dispatch_agent", "dispatch_codex"] -> :ok
+      may_start == true -> {:error, {:unsafe_agent_start, action}}
+      true -> :ok
+    end
+  end
 
   defp require_value(map, key, expected) do
     case Map.fetch(map, key) do
@@ -131,6 +165,16 @@ defmodule SymphonyElixir.Aipd.GateOutcome do
       {:ok, value} when is_boolean(value) -> :ok
       {:ok, value} -> {:error, {:invalid_boolean, key, value}}
       :error -> {:error, {:missing_key, key}}
+    end
+  end
+
+  defp require_boolean_alias(map, primary_key, legacy_key) do
+    case {Map.fetch(map, primary_key), Map.fetch(map, legacy_key)} do
+      {{:ok, value}, _} when is_boolean(value) -> :ok
+      {_, {:ok, value}} when is_boolean(value) -> :ok
+      {{:ok, value}, _} -> {:error, {:invalid_boolean, primary_key, value}}
+      {_, {:ok, value}} -> {:error, {:invalid_boolean, legacy_key, value}}
+      _ -> {:error, {:missing_key, primary_key}}
     end
   end
 

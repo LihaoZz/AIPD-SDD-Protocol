@@ -11,7 +11,9 @@
   },
   "symphony_instruction": {
     "action": "schedule_semantic_retry",
+    "may_start_agent": false,
     "may_start_codex": false,
+    "execution_provider": null,
     "retryable": true,
     "retry_after_ms": 0
   },

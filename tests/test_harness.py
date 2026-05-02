@@ -111,12 +111,14 @@ class HarnessTestCase(unittest.TestCase):
     def test_gate_outcome_rejects_non_dispatch_codex_start(self) -> None:
         example_path = REPO_ROOT / "schemas" / "examples" / "aipd-gate-outcome" / "start-reject.json"
         gate_outcome = json.loads(example_path.read_text(encoding="utf-8"))
+        gate_outcome["symphony_instruction"]["may_start_agent"] = True
         gate_outcome["symphony_instruction"]["may_start_codex"] = True
+        gate_outcome["symphony_instruction"]["execution_provider"] = "codex"
         broken_path = self.project_root / "runtime" / "unsafe-gate-outcome.json"
         broken_path.parent.mkdir(parents=True, exist_ok=True)
         broken_path.write_text(json.dumps(gate_outcome), encoding="utf-8")
         completed = self.run_python("sdd_guard.py", "check-gate-outcome", str(broken_path), expected=1)
-        self.assertIn("dispatch_codex", completed.stdout)
+        self.assertIn("dispatch_agent", completed.stdout)
 
     def test_validate_mission_rejects_runtime_managed_session_state_update(self) -> None:
         mission_path = self.project_root / "missions" / "broken-session-state.md"
@@ -195,10 +197,14 @@ class HarnessTestCase(unittest.TestCase):
             "last_verification_report_path": None,
             "last_verification_digest": None,
             "last_failure_reason": "verification_failed",
+            "last_failure_issue_type": "implementation_bug",
             "autonomy_level": "L2_auto_with_review",
             "approval_status": "not_required",
             "review_required": False,
             "next_action": "route_to_recovery",
+            "provider_attempt_counts": {"codex": 0, "minimax": 2},
+            "provider_failure_counts": {"codex": 0, "minimax": 2},
+            "last_execution_provider": "minimax",
             "updated_at": "2026-04-02T08:00:00-07:00",
             "timezone_name": "America/Los_Angeles",
         }
@@ -233,7 +239,8 @@ class HarnessTestCase(unittest.TestCase):
         self.assertTrue((self.project_root / "runtime" / "attempts" / "fb1-mb1" / "attempt-001" / "stop_hook.json").exists())
         start_outcome = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_start_gate_outcome.json")
         finish_outcome = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_finish_gate_outcome.json")
-        self.assertEqual(start_outcome["symphony_instruction"]["action"], "dispatch_codex")
+        self.assertEqual(start_outcome["symphony_instruction"]["action"], "dispatch_agent")
+        self.assertEqual(start_outcome["symphony_instruction"]["execution_provider"], "minimax")
         self.assertEqual(finish_outcome["symphony_instruction"]["action"], "release_to_review")
         locks_root = self.project_root / "runtime" / "locks"
         self.assertFalse(locks_root.exists() and list(locks_root.rglob("*.lock")))
@@ -241,10 +248,58 @@ class HarnessTestCase(unittest.TestCase):
     def test_aipd_gate_attempt_start_writes_start_gate(self) -> None:
         self.run_gate("attempt-start", "--mb-id", "fb1-mb1")
         gate = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_start_gate_outcome.json")
-        self.assertEqual(gate["symphony_instruction"]["action"], "dispatch_codex")
+        self.assertEqual(gate["symphony_instruction"]["action"], "dispatch_agent")
+        self.assertEqual(gate["symphony_instruction"]["execution_provider"], "minimax")
         state = self.read_json("runtime/state/fb1-mb1.state.json")
         self.assertEqual(state["status"], "running")
         self.assertEqual(state["last_attempt_id"], "attempt-001")
+        self.assertEqual(state["last_execution_provider"], "minimax")
+        self.assertEqual(state["provider_attempt_counts"]["minimax"], 1)
+
+    def test_aipd_gate_attempt_start_force_codex_policy_routes_codex(self) -> None:
+        spec_path = self.project_root / "missions" / "fb1-mb1.machine.json"
+        spec = self.read_json("missions/fb1-mb1.machine.json")
+        spec["provider_policy"] = {"force_codex_when": ["protocol_change"]}
+        spec_path.write_text(json.dumps(spec), encoding="utf-8")
+
+        self.run_gate("attempt-start", "--mb-id", "fb1-mb1")
+        gate = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_start_gate_outcome.json")
+        routing = self.read_json("runtime/attempts/fb1-mb1/attempt-001/provider_routing.json")
+
+        self.assertEqual(gate["symphony_instruction"]["execution_provider"], "codex")
+        self.assertIn("force_codex_when=protocol_change", routing["reason"])
+
+    def test_aipd_gate_attempt_start_escalates_after_minimax_failures(self) -> None:
+        state_path = self.project_root / "runtime" / "state" / "fb1-mb1.state.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state = {
+            "schema_version": "1.0",
+            "mb_id": "fb1-mb1",
+            "status": "failed",
+            "retry_count": 2,
+            "last_attempt_id": "attempt-002",
+            "last_verification_report_path": "runtime/attempts/fb1-mb1/attempt-002/verification_report.json",
+            "last_verification_digest": "verification failed",
+            "last_failure_reason": "verification failed",
+            "last_failure_issue_type": "implementation_bug",
+            "autonomy_level": "L2_auto_with_review",
+            "approval_status": "not_required",
+            "review_required": False,
+            "next_action": "retry",
+            "provider_attempt_counts": {"codex": 0, "minimax": 2},
+            "provider_failure_counts": {"codex": 0, "minimax": 2},
+            "last_execution_provider": "minimax",
+            "updated_at": "2026-04-02T08:00:00-07:00",
+            "timezone_name": "America/Los_Angeles",
+        }
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+
+        self.run_gate("attempt-start", "--mb-id", "fb1-mb1")
+        gate = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_start_gate_outcome.json")
+        routing = self.read_json("runtime/attempts/fb1-mb1/attempt-001/provider_routing.json")
+
+        self.assertEqual(gate["symphony_instruction"]["execution_provider"], "codex")
+        self.assertIn("escalated_after_minimax_failures=2", routing["reason"])
 
     def test_aipd_gate_attempt_finish_syncs_workspace_and_writes_finish_gate(self) -> None:
         self.run_gate("attempt-start", "--mb-id", "fb1-mb1")
@@ -321,6 +376,7 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(state["status"], "passed")
         self.assertEqual(state["retry_count"], 1)
         self.assertTrue(state["review_required"])
+        self.assertEqual(state["provider_failure_counts"]["minimax"], 1)
         second_prompt = (self.project_root / "runtime" / "attempts" / "fb1-mb3" / "attempt-002" / "prompt.md").read_text(encoding="utf-8")
         self.assertIn("Verification Digest:", second_prompt)
         self.assertIn("Retry Count: 1", second_prompt)
@@ -358,6 +414,8 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(state["retry_count"], 0)
         self.assertEqual(state["last_attempt_id"], "attempt-001")
         self.assertEqual(state["last_failure_reason"], "spec_gap")
+        self.assertEqual(state["last_failure_issue_type"], "spec_gap")
+        self.assertEqual(state["provider_failure_counts"]["minimax"], 0)
         report_path = self.project_root / "runtime" / "attempts" / "fb1-mb5" / "attempt-001" / "verification_report.json"
         self.assertFalse(report_path.exists())
         finish_outcome = self.read_json("runtime/attempts/fb1-mb5/attempt-001/attempt_finish_gate_outcome.json")
@@ -386,8 +444,10 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(blocked_state["status"], "blocked")
         self.assertEqual(blocked_state["approval_status"], "pending")
         self.assertEqual(blocked_state["last_failure_reason"], "human_approval_required")
+        self.assertEqual(blocked_state["last_failure_issue_type"], "review_context_gap")
         start_reject = self.read_json("runtime/gate_outcomes/fb1-mb7/attempt_start.json")
         self.assertEqual(start_reject["symphony_instruction"]["action"], "pause_wait_human")
+        self.assertFalse(start_reject["symphony_instruction"]["may_start_agent"])
         self.assertFalse(start_reject["symphony_instruction"]["may_start_codex"])
         self.assertFalse((self.project_root / "runtime" / "attempts" / "fb1-mb7").exists())
 
@@ -403,6 +463,7 @@ class HarnessTestCase(unittest.TestCase):
         self.run_mb("fb1-mb1", expected=1)
         start_reject = self.read_json("runtime/gate_outcomes/fb1-mb1/attempt_start.json")
         self.assertEqual(start_reject["symphony_instruction"]["action"], "defer_retry")
+        self.assertFalse(start_reject["symphony_instruction"]["may_start_agent"])
         self.assertFalse(start_reject["symphony_instruction"]["may_start_codex"])
         self.assertFalse((self.project_root / "runtime" / "attempts" / "fb1-mb1").exists())
 
@@ -438,6 +499,7 @@ class HarnessTestCase(unittest.TestCase):
         self.run_mb("fb1-mb1", expected=1)
         start_reject = self.read_json("runtime/gate_outcomes/fb1-mb1/attempt_start.json")
         self.assertEqual(start_reject["symphony_instruction"]["action"], "release_and_wait_input")
+        self.assertFalse(start_reject["symphony_instruction"]["may_start_agent"])
         self.assertFalse(start_reject["symphony_instruction"]["may_start_codex"])
         self.assertFalse((self.project_root / "runtime" / "attempts" / "fb1-mb1").exists())
 
