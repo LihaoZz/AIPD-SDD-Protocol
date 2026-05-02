@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import json
+import sys
 from pathlib import Path
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR / "scripts") not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR / "scripts"))
 
+from provider_registry import load_provider_registry
 TEMPLATE = """---
 tracker:
   kind: aipd_mb
@@ -24,12 +30,8 @@ agent:
   max_concurrent_agents: 3
   max_turns: 10
 agent_runtime:
-  default_provider: codex
-  providers:
-    codex:
-      command: codex app-server
-    minimax:
-      command: python3 {minimax_adapter_path} app-server
+  default_provider: {default_provider}
+  providers: {providers_json}
   approval_policy: never
   thread_sandbox: workspace-write
   turn_sandbox_policy:
@@ -62,13 +64,19 @@ def main() -> int:
         if args.workspace_root
         else project_root.parent / f"{project_root.name}-symphony-workspaces"
     )
+    registry = load_provider_registry()
+    providers = {
+        provider_id: {"command": registry.command_for_project(provider_id, project_root)}
+        for provider_id in sorted(registry.provider_ids())
+    }
 
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
         TEMPLATE.format(
             project_root=project_root,
             workspace_root=workspace_root,
-            minimax_adapter_path=project_root / "runtime" / "minimax_adapter" / "bin" / "minimax_app_server.py",
+            default_provider=registry.role_provider("default_execution_provider"),
+            providers_json=json.dumps(providers, ensure_ascii=True),
         ),
         encoding="utf-8",
     )

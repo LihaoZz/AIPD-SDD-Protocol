@@ -194,10 +194,7 @@
     },
     "execution_provider": {
       "type": "string",
-      "enum": [
-        "codex",
-        "minimax"
-      ]
+      "minLength": 1
     },
     "provider_policy": {
       "type": "object",
@@ -205,10 +202,46 @@
       "properties": {
         "default_provider": {
           "type": "string",
-          "enum": [
-            "codex",
-            "minimax"
-          ]
+          "minLength": 1
+        },
+        "force_precision_when": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "backend_logic",
+              "algorithmic_logic",
+              "precision_debugging",
+              "test_repair",
+              "data_transform"
+            ]
+          }
+        },
+        "force_deepseek_when": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "backend_logic",
+              "algorithmic_logic",
+              "precision_debugging",
+              "test_repair",
+              "data_transform"
+            ]
+          }
+        },
+        "force_high_complexity_when": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "protocol_change",
+              "state_machine_change",
+              "multi_subsystem_change",
+              "high_risk_migration",
+              "deep_debugging"
+            ]
+          }
         },
         "force_codex_when": {
           "type": "array",
@@ -225,9 +258,11 @@
         },
         "escalate_to": {
           "type": "string",
-          "enum": [
-            "codex"
-          ]
+          "minLength": 1
+        },
+        "escalate_after_provider_failures": {
+          "type": "integer",
+          "minimum": 1
         },
         "escalate_after_minimax_failures": {
           "type": "integer",

@@ -195,6 +195,7 @@ defmodule SymphonyElixir.AppServerTest do
       workspace = Path.join(workspace_root, "MT-1002")
       codex_binary = Path.join(test_root, "fake-codex")
       minimax_binary = Path.join(test_root, "fake-minimax")
+      deepseek_binary = Path.join(test_root, "fake-deepseek")
       trace_file = Path.join(test_root, "provider-command.trace")
       previous_trace = System.get_env("SYMP_TEST_PROVIDER_TRACE")
 
@@ -209,7 +210,7 @@ defmodule SymphonyElixir.AppServerTest do
       System.put_env("SYMP_TEST_PROVIDER_TRACE", trace_file)
       File.mkdir_p!(workspace)
 
-      Enum.each([{"codex", codex_binary}, {"minimax", minimax_binary}], fn {name, path} ->
+      Enum.each([{"codex", codex_binary}, {"minimax", minimax_binary}, {"deepseek", deepseek_binary}], fn {name, path} ->
         File.write!(path, """
         #!/bin/sh
         trace_file="${SYMP_TEST_PROVIDER_TRACE:-/tmp/provider-command.trace}"
@@ -249,7 +250,8 @@ defmodule SymphonyElixir.AppServerTest do
         agent_runtime_default_provider: "codex",
         agent_runtime_providers: %{
           codex: %{command: "#{codex_binary} app-server"},
-          minimax: %{command: "#{minimax_binary} app-server"}
+          minimax: %{command: "#{minimax_binary} app-server"},
+          deepseek: %{command: "#{deepseek_binary} app-server"}
         },
         agent_runtime_approval_policy: "never",
         agent_runtime_thread_sandbox: "workspace-write"
@@ -265,11 +267,12 @@ defmodule SymphonyElixir.AppServerTest do
         labels: ["backend"]
       }
 
-      assert {:ok, _result} = AppServer.run(workspace, "Use minimax", issue, provider: "minimax")
+      assert {:ok, _result} = AppServer.run(workspace, "Use deepseek", issue, provider: "deepseek")
 
       trace = File.read!(trace_file)
-      assert trace =~ "PROVIDER:minimax"
+      assert trace =~ "PROVIDER:deepseek"
       refute trace =~ "PROVIDER:codex"
+      refute trace =~ "PROVIDER:minimax"
     after
       File.rm_rf(test_root)
     end

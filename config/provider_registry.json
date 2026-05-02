@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "role_defaults": {
+    "default_execution_provider": "minimax",
+    "precision_execution_provider": "deepseek",
+    "high_complexity_provider": "codex",
+    "escalation_provider": "codex"
+  },
+  "providers": {
+    "codex": {
+      "adapter_kind": "native_codex",
+      "launcher_family": "codex",
+      "supports_aipd_mode": true,
+      "may_be_default": true,
+      "may_be_escalate_to": true,
+      "role_tags": [
+        "high_complexity",
+        "review"
+      ],
+      "workflow_command_template": "codex app-server"
+    },
+    "minimax": {
+      "adapter_kind": "claude_compatible_adapter",
+      "launcher_family": "claude-compatible",
+      "supports_aipd_mode": true,
+      "may_be_default": true,
+      "may_be_escalate_to": false,
+      "role_tags": [
+        "fast_execution",
+        "default_execution"
+      ],
+      "workflow_command_template": "python3 {project_root}/runtime/minimax_adapter/bin/minimax_app_server.py app-server"
+    },
+    "deepseek": {
+      "adapter_kind": "claude_compatible_adapter",
+      "launcher_family": "claude-compatible",
+      "supports_aipd_mode": true,
+      "may_be_default": true,
+      "may_be_escalate_to": false,
+      "role_tags": [
+        "precision_execution"
+      ],
+      "workflow_command_template": "python3 {project_root}/runtime/deepseek_adapter/bin/deepseek_app_server.py app-server"
+    }
+  }
+}

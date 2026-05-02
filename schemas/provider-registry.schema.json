@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/provider-registry.schema.json",
+  "title": "AIPD Provider Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "role_defaults",
+    "providers"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "role_defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_execution_provider",
+        "precision_execution_provider",
+        "high_complexity_provider",
+        "escalation_provider"
+      ],
+      "properties": {
+        "default_execution_provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "precision_execution_provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "high_complexity_provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "escalation_provider": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "providers": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "adapter_kind",
+          "launcher_family",
+          "supports_aipd_mode",
+          "may_be_default",
+          "may_be_escalate_to",
+          "role_tags",
+          "workflow_command_template"
+        ],
+        "properties": {
+          "adapter_kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "launcher_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "supports_aipd_mode": {
+            "type": "boolean"
+          },
+          "may_be_default": {
+            "type": "boolean"
+          },
+          "may_be_escalate_to": {
+            "type": "boolean"
+          },
+          "role_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "workflow_command_template": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

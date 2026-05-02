@@ -50,16 +50,26 @@ class HarnessTestCase(unittest.TestCase):
             mb_id,
             "--codex-command",
             str(FAKE_CODEX),
+            "--minimax-command",
+            str(FAKE_CODEX),
+            "--deepseek-command",
+            str(FAKE_CODEX),
             *extra_args,
             expected=expected,
         )
 
     def run_gate(self, command: str, *extra_args: str, expected: int | None = 0) -> subprocess.CompletedProcess[str]:
+        provider_args = (
+            ["--minimax-command", str(FAKE_CODEX), "--deepseek-command", str(FAKE_CODEX)]
+            if command == "attempt-start"
+            else []
+        )
         return self.run_python(
             "aipd_gate.py",
             command,
             "--project-root",
             str(self.project_root),
+            *provider_args,
             *extra_args,
             expected=expected,
         )
@@ -202,8 +212,8 @@ class HarnessTestCase(unittest.TestCase):
             "approval_status": "not_required",
             "review_required": False,
             "next_action": "route_to_recovery",
-            "provider_attempt_counts": {"codex": 0, "minimax": 2},
-            "provider_failure_counts": {"codex": 0, "minimax": 2},
+            "provider_attempt_counts": {"codex": 0, "minimax": 2, "deepseek": 0},
+            "provider_failure_counts": {"codex": 0, "minimax": 2, "deepseek": 0},
             "last_execution_provider": "minimax",
             "updated_at": "2026-04-02T08:00:00-07:00",
             "timezone_name": "America/Los_Angeles",
@@ -269,6 +279,19 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(gate["symphony_instruction"]["execution_provider"], "codex")
         self.assertIn("force_codex_when=protocol_change", routing["reason"])
 
+    def test_aipd_gate_attempt_start_force_deepseek_policy_routes_deepseek(self) -> None:
+        spec_path = self.project_root / "missions" / "fb1-mb1.machine.json"
+        spec = self.read_json("missions/fb1-mb1.machine.json")
+        spec["provider_policy"] = {"force_deepseek_when": ["backend_logic"]}
+        spec_path.write_text(json.dumps(spec), encoding="utf-8")
+
+        self.run_gate("attempt-start", "--mb-id", "fb1-mb1")
+        gate = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_start_gate_outcome.json")
+        routing = self.read_json("runtime/attempts/fb1-mb1/attempt-001/provider_routing.json")
+
+        self.assertEqual(gate["symphony_instruction"]["execution_provider"], "deepseek")
+        self.assertIn("force_deepseek_when=backend_logic", routing["reason"])
+
     def test_aipd_gate_attempt_start_escalates_after_minimax_failures(self) -> None:
         state_path = self.project_root / "runtime" / "state" / "fb1-mb1.state.json"
         state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -286,8 +309,8 @@ class HarnessTestCase(unittest.TestCase):
             "approval_status": "not_required",
             "review_required": False,
             "next_action": "retry",
-            "provider_attempt_counts": {"codex": 0, "minimax": 2},
-            "provider_failure_counts": {"codex": 0, "minimax": 2},
+            "provider_attempt_counts": {"codex": 0, "minimax": 2, "deepseek": 0},
+            "provider_failure_counts": {"codex": 0, "minimax": 2, "deepseek": 0},
             "last_execution_provider": "minimax",
             "updated_at": "2026-04-02T08:00:00-07:00",
             "timezone_name": "America/Los_Angeles",
@@ -300,6 +323,55 @@ class HarnessTestCase(unittest.TestCase):
 
         self.assertEqual(gate["symphony_instruction"]["execution_provider"], "codex")
         self.assertIn("escalated_after_minimax_failures=2", routing["reason"])
+
+    def test_aipd_gate_attempt_start_default_provider_deepseek_routes_deepseek(self) -> None:
+        spec_path = self.project_root / "missions" / "fb1-mb1.machine.json"
+        spec = self.read_json("missions/fb1-mb1.machine.json")
+        spec["provider_policy"] = {"default_provider": "deepseek"}
+        spec_path.write_text(json.dumps(spec), encoding="utf-8")
+
+        self.run_gate("attempt-start", "--mb-id", "fb1-mb1")
+        gate = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_start_gate_outcome.json")
+        routing = self.read_json("runtime/attempts/fb1-mb1/attempt-001/provider_routing.json")
+
+        self.assertEqual(gate["symphony_instruction"]["execution_provider"], "deepseek")
+        self.assertIn("default_provider=deepseek", routing["reason"])
+
+    def test_aipd_gate_attempt_start_escalates_after_deepseek_failures(self) -> None:
+        state_path = self.project_root / "runtime" / "state" / "fb1-mb1.state.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state = {
+            "schema_version": "1.0",
+            "mb_id": "fb1-mb1",
+            "status": "failed",
+            "retry_count": 2,
+            "last_attempt_id": "attempt-002",
+            "last_verification_report_path": "runtime/attempts/fb1-mb1/attempt-002/verification_report.json",
+            "last_verification_digest": "verification failed",
+            "last_failure_reason": "verification failed",
+            "last_failure_issue_type": "implementation_bug",
+            "autonomy_level": "L2_auto_with_review",
+            "approval_status": "not_required",
+            "review_required": False,
+            "next_action": "retry",
+            "provider_attempt_counts": {"codex": 0, "minimax": 0, "deepseek": 2},
+            "provider_failure_counts": {"codex": 0, "minimax": 0, "deepseek": 2},
+            "last_execution_provider": "deepseek",
+            "updated_at": "2026-04-02T08:00:00-07:00",
+            "timezone_name": "America/Los_Angeles",
+        }
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        spec_path = self.project_root / "missions" / "fb1-mb1.machine.json"
+        spec = self.read_json("missions/fb1-mb1.machine.json")
+        spec["provider_policy"] = {"default_provider": "deepseek"}
+        spec_path.write_text(json.dumps(spec), encoding="utf-8")
+
+        self.run_gate("attempt-start", "--mb-id", "fb1-mb1")
+        gate = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_start_gate_outcome.json")
+        routing = self.read_json("runtime/attempts/fb1-mb1/attempt-001/provider_routing.json")
+
+        self.assertEqual(gate["symphony_instruction"]["execution_provider"], "codex")
+        self.assertIn("escalated_after_deepseek_failures=2", routing["reason"])
 
     def test_aipd_gate_attempt_finish_syncs_workspace_and_writes_finish_gate(self) -> None:
         self.run_gate("attempt-start", "--mb-id", "fb1-mb1")

@@ -113,49 +113,24 @@
     },
     "provider_attempt_counts": {
       "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "codex",
-        "minimax"
-      ],
-      "properties": {
-        "codex": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "minimax": {
-          "type": "integer",
-          "minimum": 0
-        }
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
       }
     },
     "provider_failure_counts": {
       "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "codex",
-        "minimax"
-      ],
-      "properties": {
-        "codex": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "minimax": {
-          "type": "integer",
-          "minimum": 0
-        }
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
       }
     },
     "last_execution_provider": {
       "type": [
         "string",
         "null"
-      ],
-      "enum": [
-        "codex",
-        "minimax",
-        null
       ]
     },
     "updated_at": {

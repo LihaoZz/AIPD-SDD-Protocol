@@ -79,7 +79,13 @@ def sync_workspace_changes(workspace_root: Path, project_root: Path, changes: li
                 target.unlink()
 
 
-def run_attempt_start(project_root: Path, mb_id: str, agent_command: str, minimax_command: str | None) -> int:
+def run_attempt_start(
+    project_root: Path,
+    mb_id: str,
+    agent_command: str,
+    minimax_command: str | None,
+    deepseek_command: str | None,
+) -> int:
     spec, state, autonomy_level = prepare_state(project_root, mb_id)
     if state["status"] in {"passed", "routed_to_recovery"}:
         print(json.dumps(state, ensure_ascii=True, indent=2))
@@ -116,6 +122,7 @@ def run_attempt_start(project_root: Path, mb_id: str, agent_command: str, minima
         state,
         agent_command,
         minimax_command,
+        deepseek_command,
         None,
         False,
     )
@@ -150,7 +157,7 @@ def run_attempt_finish(project_root: Path, workspace_root: Path, mb_id: str, att
         "returncode": 0,
         "stdout": summary or "",
         "stderr": "",
-        "command": [provider_command(current_provider, "codex", "minimax"), "app-server"],
+        "command": [current_provider, "app-server"],
     }
     write_json(current_attempt_dir / "execution_result.json", execution)
     (current_attempt_dir / "last_message.txt").write_text((summary or "") + "\n", encoding="utf-8")
@@ -330,7 +337,7 @@ def run_attempt_finish(project_root: Path, workspace_root: Path, mb_id: str, att
     state["last_failure_reason"] = report["summary"]
     state["last_failure_issue_type"] = "implementation_bug"
     state["review_required"] = False
-    if state.get("last_execution_provider") in {"codex", "minimax"}:
+    if state.get("last_execution_provider") in {"codex", "minimax", "deepseek"}:
         increment_provider_counter(state, "provider_failure_counts", state["last_execution_provider"])
     retry_limit_reached = state["retry_count"] >= spec["retry_policy"]["max_retries"]
     append_failure_log(
@@ -403,6 +410,7 @@ def main() -> int:
     start_parser.add_argument("--agent-command", default="codex app-server")
     start_parser.add_argument("--codex-command", dest="agent_command")
     start_parser.add_argument("--minimax-command")
+    start_parser.add_argument("--deepseek-command")
 
     finish_parser = subparsers.add_parser("attempt-finish", help="Apply one Symphony workspace result to AIPD state.")
     finish_parser.add_argument("--project-root", required=True)
@@ -414,7 +422,13 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "attempt-start":
-        return run_attempt_start(resolve_path(args.project_root), args.mb_id, args.agent_command, args.minimax_command)
+        return run_attempt_start(
+            resolve_path(args.project_root),
+            args.mb_id,
+            args.agent_command,
+            args.minimax_command,
+            args.deepseek_command,
+        )
 
     return run_attempt_finish(
         resolve_path(args.project_root),

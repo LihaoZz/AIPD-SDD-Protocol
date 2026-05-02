@@ -20,6 +20,7 @@ from harness_common import (
     write_json,
 )
 from memory_bridge import sync_quality_memory
+from provider_registry import load_provider_registry
 
 
 def normalize_failure_key(failure_type: str, condition: str) -> str:
@@ -28,6 +29,9 @@ def normalize_failure_key(failure_type: str, condition: str) -> str:
 
 
 def default_state(mb_id: str) -> dict[str, Any]:
+    registry = load_provider_registry()
+    provider_counts = {provider_id: 0 for provider_id in registry.provider_ids()}
+
     return {
         "schema_version": "1.0",
         "mb_id": mb_id,
@@ -42,8 +46,8 @@ def default_state(mb_id: str) -> dict[str, Any]:
         "approval_status": "not_required",
         "review_required": False,
         "next_action": "run",
-        "provider_attempt_counts": {"codex": 0, "minimax": 0},
-        "provider_failure_counts": {"codex": 0, "minimax": 0},
+        "provider_attempt_counts": dict(provider_counts),
+        "provider_failure_counts": dict(provider_counts),
         "last_execution_provider": None,
         "updated_at": local_timestamp(),
         "timezone_name": local_timezone_name(),

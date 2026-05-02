@@ -888,7 +888,8 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
       agent_runtime_default_provider: "codex",
       agent_runtime_providers: %{
         codex: %{command: "codex app-server --model gpt-5.3-codex"},
-        minimax: %{command: "python3 /tmp/minimax_app_server.py app-server"}
+        minimax: %{command: "python3 /tmp/minimax_app_server.py app-server"},
+        deepseek: %{command: "python3 /tmp/deepseek_app_server.py app-server"}
       },
       agent_runtime_approval_policy: "never",
       agent_runtime_thread_sandbox: "workspace-write",
@@ -899,6 +900,7 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
     assert config.agent_runtime.default_provider == "codex"
     assert Config.command_for_provider("codex") == "codex app-server --model gpt-5.3-codex"
     assert Config.command_for_provider("minimax") == "python3 /tmp/minimax_app_server.py app-server"
+    assert Config.command_for_provider("deepseek") == "python3 /tmp/deepseek_app_server.py app-server"
 
     assert {:ok, runtime_settings} = Config.agent_runtime_settings("minimax", "/tmp/workspace")
     assert runtime_settings.provider == "minimax"

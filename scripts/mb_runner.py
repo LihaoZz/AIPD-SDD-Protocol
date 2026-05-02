@@ -30,6 +30,7 @@ from harness_common import (
 from hook_runtime import run_post_tool_hook, run_pre_tool_hook, run_stop_hook
 from memory_bridge import lookup_memory_context, render_memory_context
 from preflight import mb_preflight
+from provider_registry import ensure_known_provider, load_provider_registry
 from scope_guard import changed_files, evaluate_scope, snapshot_workspace
 from state_writer import append_failure_log, append_project_memory, load_state, sync_session_state, write_state
 from verifier import run_verification
@@ -74,12 +75,34 @@ def effective_autonomy_level(spec: dict[str, Any]) -> str:
 
 
 def provider_policy(spec: dict[str, Any]) -> dict[str, Any]:
+    registry = load_provider_registry()
     raw_policy = spec.get("provider_policy") or {}
     legacy_provider = spec.get("execution_provider")
-    default_provider = raw_policy.get("default_provider", legacy_provider or "minimax")
-    if default_provider not in {"codex", "minimax"}:
-        raise ValueError(f"Unsupported provider_policy.default_provider: {default_provider}")
+    default_provider = raw_policy.get(
+        "default_provider",
+        legacy_provider or registry.role_provider("default_execution_provider"),
+    )
+    ensure_known_provider(default_provider, registry)
 
+    force_precision_when = raw_policy.get("force_precision_when", [])
+    force_deepseek_when = raw_policy.get("force_deepseek_when", [])
+    valid_deepseek_force_reasons = {
+        "backend_logic",
+        "algorithmic_logic",
+        "precision_debugging",
+        "test_repair",
+        "data_transform",
+    }
+    invalid_precision_reasons = [
+        reason for reason in (force_precision_when + force_deepseek_when)
+        if reason not in valid_deepseek_force_reasons
+    ]
+    if invalid_precision_reasons:
+        raise ValueError(
+            f"Unsupported precision force reasons: {invalid_precision_reasons}"
+        )
+
+    force_high_complexity_when = raw_policy.get("force_high_complexity_when", [])
     force_codex_when = raw_policy.get("force_codex_when", [])
     valid_force_reasons = {
         "protocol_change",
@@ -88,13 +111,15 @@ def provider_policy(spec: dict[str, Any]) -> dict[str, Any]:
         "high_risk_migration",
         "deep_debugging",
     }
-    invalid_force_reasons = [reason for reason in force_codex_when if reason not in valid_force_reasons]
+    invalid_force_reasons = [
+        reason for reason in (force_high_complexity_when + force_codex_when)
+        if reason not in valid_force_reasons
+    ]
     if invalid_force_reasons:
-        raise ValueError(f"Unsupported provider_policy.force_codex_when: {invalid_force_reasons}")
+        raise ValueError(f"Unsupported high complexity force reasons: {invalid_force_reasons}")
 
-    escalate_to = raw_policy.get("escalate_to", "codex")
-    if escalate_to != "codex":
-        raise ValueError(f"Unsupported provider_policy.escalate_to: {escalate_to}")
+    escalate_to = raw_policy.get("escalate_to", registry.role_provider("escalation_provider"))
+    ensure_known_provider(escalate_to, registry)
 
     escalate_on_issue_types = raw_policy.get(
         "escalate_on_issue_types",
@@ -105,49 +130,74 @@ def provider_policy(spec: dict[str, Any]) -> dict[str, Any]:
     if invalid_issue_types:
         raise ValueError(f"Unsupported provider_policy.escalate_on_issue_types: {invalid_issue_types}")
 
-    escalate_after_failures = int(raw_policy.get("escalate_after_minimax_failures", 2))
+    escalate_after_failures = int(
+        raw_policy.get(
+            "escalate_after_provider_failures",
+            raw_policy.get("escalate_after_minimax_failures", 2),
+        )
+    )
     if escalate_after_failures < 1:
-        raise ValueError("provider_policy.escalate_after_minimax_failures must be >= 1")
+        raise ValueError("provider_policy.escalate_after_provider_failures must be >= 1")
 
     return {
         "default_provider": default_provider,
+        "force_precision_when": force_precision_when,
+        "force_deepseek_when": force_deepseek_when,
+        "force_high_complexity_when": force_high_complexity_when,
         "force_codex_when": force_codex_when,
         "escalate_to": escalate_to,
-        "escalate_after_minimax_failures": escalate_after_failures,
+        "escalate_after_provider_failures": escalate_after_failures,
         "escalate_on_issue_types": escalate_on_issue_types,
     }
 
 
 def selected_execution_provider(spec: dict[str, Any], state: dict[str, Any]) -> tuple[str, str]:
+    registry = load_provider_registry()
     policy = provider_policy(spec)
-    force_codex_when = policy["force_codex_when"]
-    if force_codex_when:
-        return "codex", f"force_codex_when={','.join(force_codex_when)}"
+    high_complexity_reasons = policy["force_high_complexity_when"] or policy["force_codex_when"]
+    if high_complexity_reasons:
+        provider_id = registry.role_provider("high_complexity_provider")
+        reason_key = "force_codex_when" if policy["force_codex_when"] else "force_high_complexity_when"
+        return provider_id, f"{reason_key}={','.join(high_complexity_reasons)}"
+
+    precision_reasons = policy["force_precision_when"] or policy["force_deepseek_when"]
+    if precision_reasons:
+        provider_id = registry.role_provider("precision_execution_provider")
+        reason_key = "force_deepseek_when" if policy["force_deepseek_when"] else "force_precision_when"
+        return provider_id, f"{reason_key}={','.join(precision_reasons)}"
 
     default_provider = policy["default_provider"]
-    if default_provider != "minimax":
+    if default_provider == registry.role_provider("high_complexity_provider"):
         return default_provider, f"default_provider={default_provider}"
 
-    minimax_failures = int((state.get("provider_failure_counts") or {}).get("minimax", 0))
-    threshold = policy["escalate_after_minimax_failures"]
+    provider_failures = int((state.get("provider_failure_counts") or {}).get(default_provider, 0))
+    threshold = policy["escalate_after_provider_failures"]
     last_issue_type = state.get("last_failure_issue_type")
-    if minimax_failures >= threshold and last_issue_type in set(policy["escalate_on_issue_types"]):
-        return policy["escalate_to"], f"escalated_after_minimax_failures={minimax_failures}"
+    if provider_failures >= threshold and last_issue_type in set(policy["escalate_on_issue_types"]):
+        return policy["escalate_to"], f"escalated_after_{default_provider}_failures={provider_failures}"
 
-    return "minimax", "default_provider=minimax"
+    return default_provider, f"default_provider={default_provider}"
 
 
-def provider_command(provider: str, codex_command: str, minimax_command: str | None) -> str:
+def provider_command(
+    provider: str,
+    codex_command: str,
+    minimax_command: str | None,
+    deepseek_command: str | None,
+) -> str:
     if provider == "codex":
         return codex_command
     if provider == "minimax":
         return minimax_command or codex_command
+    if provider == "deepseek":
+        return deepseek_command or codex_command
     raise ValueError(f"Unsupported execution provider: {provider}")
 
 
 def increment_provider_counter(state: dict[str, Any], counter_key: str, provider: str) -> None:
-    counters = state.setdefault(counter_key, {"codex": 0, "minimax": 0})
-    for known_provider in ("codex", "minimax"):
+    registry = load_provider_registry()
+    counters = state.setdefault(counter_key, {provider_id: 0 for provider_id in registry.provider_ids()})
+    for known_provider in registry.provider_ids():
         counters.setdefault(known_provider, 0)
     counters[provider] += 1
 
@@ -525,6 +575,7 @@ def attempt_start(
     state: dict[str, Any],
     codex_command: str,
     minimax_command: str | None,
+    deepseek_command: str | None,
     model: str | None,
     json_output: bool,
 ) -> dict[str, Any]:
@@ -619,7 +670,7 @@ def attempt_start(
     command = build_codex_exec_command(
         project_root,
         current_attempt_dir,
-        provider_command(provider, codex_command, minimax_command),
+        provider_command(provider, codex_command, minimax_command, deepseek_command),
         model,
         json_output,
     )
@@ -889,7 +940,7 @@ def attempt_finish(
     state["last_failure_reason"] = report["summary"]
     state["last_failure_issue_type"] = "implementation_bug"
     state["review_required"] = False
-    if state.get("last_execution_provider") in {"codex", "minimax"}:
+    if state.get("last_execution_provider") in {"codex", "minimax", "deepseek"}:
         increment_provider_counter(state, "provider_failure_counts", state["last_execution_provider"])
     retry_limit_reached = state["retry_count"] >= spec["retry_policy"]["max_retries"]
     append_failure_log(
@@ -956,6 +1007,7 @@ def run_once(
     mb_id: str,
     codex_command: str,
     minimax_command: str | None,
+    deepseek_command: str | None,
     model: str | None,
     dry_run: bool,
     stream_output: bool,
@@ -1021,6 +1073,7 @@ def run_once(
             state,
             codex_command,
             minimax_command,
+            deepseek_command,
             model,
             json_output,
         )
@@ -1063,6 +1116,7 @@ def main() -> int:
     parser.add_argument("--mb-id", required=True)
     parser.add_argument("--codex-command", default="codex")
     parser.add_argument("--minimax-command")
+    parser.add_argument("--deepseek-command")
     parser.add_argument("--model")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--stream-codex-output", action="store_true")
@@ -1075,6 +1129,7 @@ def main() -> int:
         args.mb_id,
         args.codex_command,
         args.minimax_command,
+        args.deepseek_command,
         args.model,
         args.dry_run,
         args.stream_codex_output,
