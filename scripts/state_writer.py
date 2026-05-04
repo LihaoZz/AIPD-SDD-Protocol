@@ -18,6 +18,7 @@ from harness_common import (
     local_timezone_name,
     validate_with_schema,
     write_json,
+    write_text,
 )
 from memory_bridge import sync_quality_memory
 from provider_registry import load_provider_registry
@@ -122,7 +123,7 @@ def sync_session_state(project_root: Path, parent_fb_id: str, state: dict[str, A
 - `assumptions_still_active`: {assumptions or "none"}
 - `risks_to_watch`: {risks or "none"}
 """
-    session_state_path.write_text(content, encoding="utf-8")
+    write_text(session_state_path, content)
 
 
 def append_project_memory(project_root: Path, parent_fb_id: str, mb_id: str, report: dict[str, Any]) -> None:

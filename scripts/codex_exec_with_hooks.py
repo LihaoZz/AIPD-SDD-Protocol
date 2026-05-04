@@ -5,7 +5,16 @@ from __future__ import annotations
 import argparse
 import json
 
-from harness_common import attempt_dir, initialize_runtime_memory, mission_machine_spec_path, read_json, resolve_path, write_json
+from harness_common import (
+    attempt_dir,
+    initialize_runtime_memory,
+    load_execution_policy,
+    mission_machine_spec_path,
+    read_json,
+    resolve_execution_policy,
+    resolve_path,
+    write_json,
+)
 from hook_runtime import run_post_tool_hook, run_pre_tool_hook
 from mb_runner import build_codex_exec_command, build_prompt, effective_autonomy_level, next_attempt_id, run_codex_cli
 from memory_bridge import lookup_memory_context
@@ -34,11 +43,20 @@ def main() -> int:
     attempt_id = next_attempt_id(project_root, args.mb_id)
     current_attempt_dir = attempt_dir(project_root, args.mb_id, attempt_id)
     current_attempt_dir.mkdir(parents=True, exist_ok=True)
+    execution_policy = resolve_execution_policy(load_execution_policy(), args.mb_id, attempt_id)
+    write_json(current_attempt_dir / "resolved_execution_policy.json", execution_policy)
 
     prompt = build_prompt(project_root, spec, state, memory_context)
     (current_attempt_dir / "prompt.md").write_text(prompt, encoding="utf-8")
 
-    command = build_codex_exec_command(project_root, current_attempt_dir, args.codex_command, args.model, args.codex_json)
+    command = build_codex_exec_command(
+        project_root,
+        current_attempt_dir,
+        args.codex_command,
+        execution_policy["sandbox"]["mode"],
+        args.model,
+        args.codex_json,
+    )
     pre_hook = run_pre_tool_hook(project_root, spec, current_attempt_dir, command)
     if pre_hook["status"] != "pass":
         print(json.dumps(pre_hook, ensure_ascii=True, indent=2))

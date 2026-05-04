@@ -1,0 +1,255 @@
+{
+  "schema_version": "1.0",
+  "generated_from": [
+    "README.md",
+    "docs/00_lifecycle.md",
+    "docs/01_principles.md",
+    "docs/05_operating_playbook.md",
+    "docs/06_session_bootstrap.md",
+    "HARNESS.md"
+  ],
+  "authority": {
+    "english_markdown_authoritative": true,
+    "machine_summary_kind": "derived_compact",
+    "chinese_reference_kind": "generated_reference_only"
+  },
+  "startup": {
+    "machine_default_entrypoint": "generated/protocol_compact.json",
+    "human_authority_refs": [
+      "README.md",
+      "docs/00_lifecycle.md",
+      "docs/01_principles.md",
+      "docs/05_operating_playbook.md",
+      "docs/06_session_bootstrap.md",
+      "HARNESS.md"
+    ],
+    "global_bootstrap_files": [
+      "`generated/protocol_compact.json`"
+    ],
+    "automatic_reading_path_steps": [
+      "run `Project Preflight`",
+      "return a short `Preflight Summary`",
+      "classify the project state as `ready`, `bootstrap_required`, or `blocked`",
+      "map the scene-specific path from [docs/00_lifecycle.md](docs/00_lifecycle.md)",
+      "activate the first role",
+      "continue automatically only when safe"
+    ],
+    "minimum_startup_checklist": [
+      "`<PROJECT_ROOT>/CONSTITUTION.md`",
+      "`<PROJECT_ROOT>/SCOPE.md`",
+      "`<PROJECT_ROOT>/DECISIONS.md`",
+      "`<PROJECT_ROOT>/SESSION_STATE.md`",
+      "`<PROJECT_ROOT>/research/*.md`",
+      "`<PROJECT_ROOT>/experience_prompts/*.md`",
+      "`<PROJECT_ROOT>/DATA_MODEL.md`",
+      "`<PROJECT_ROOT>/API_CONTRACT.md` or `<PROJECT_ROOT>/openapi.yaml`"
+    ]
+  },
+  "scenes": {
+    "greenfield": {
+      "required_reads": [
+        "`docs/01_principles.md`",
+        "`docs/02_artifacts.md`",
+        "core templates for constitution, scope, FB, MB, quality, and session state"
+      ],
+      "first_role": [
+        "`Spec Architect`"
+      ],
+      "first_action": [
+        "ask business questions until the 8 ontology elements and affected layers can be written",
+        "if external facts or tool discovery would materially help, request user approval before any system-triggered research"
+      ],
+      "do_not": [
+        "start coding",
+        "force early technical stack choices"
+      ]
+    },
+    "expansion": {
+      "required_reads": [
+        "`<PROJECT_ROOT>/CONSTITUTION.md`",
+        "`<PROJECT_ROOT>/SCOPE.md`",
+        "`<PROJECT_ROOT>/DECISIONS.md`",
+        "`<PROJECT_ROOT>/SESSION_STATE.md`",
+        "`docs/02_artifacts.md`",
+        "`docs/03_mission_blocks.md`",
+        "`<PROJECT_ROOT>/QUALITY_RULEBOOK.md`",
+        "`<PROJECT_ROOT>/QUALITY_MEMORY.md`"
+      ],
+      "first_role": [
+        "`Spec Architect`"
+      ],
+      "first_action": [
+        "identify what the feature changes, what current assumption it may break, and what FB detail must exist before coding",
+        "if market scan, similar-product review, or tool discovery would materially help, request user approval before any system-triggered research"
+      ],
+      "do_not": [
+        "start implementing before specs are updated"
+      ],
+      "also_read_when_relevant": [
+        "`<PROJECT_ROOT>/DATA_MODEL.md`",
+        "`<PROJECT_ROOT>/API_CONTRACT.md`"
+      ]
+    },
+    "continue": {
+      "required_reads": [
+        "`<PROJECT_ROOT>/SESSION_STATE.md`",
+        "current function block",
+        "current mission block",
+        "current mission machine spec when it exists",
+        "required input artifacts when the current FB or MB depends on them"
+      ],
+      "first_role": [
+        "`Builder` if the state is healthy",
+        "`Spec Architect` or `Recovery Coordinator` if the state is blocked or drifting"
+      ],
+      "first_action": [
+        "name the current stage and the next single action",
+        "if harness execution is used, run `preflight.py --level mb` before invoking the Builder loop",
+        "if a bounded technical gap needs external facts, request user approval before any system-triggered research"
+      ],
+      "do_not": [
+        "restart the whole project from zero"
+      ],
+      "also_read_when_needed": [
+        "`docs/04_review_recovery.md`"
+      ]
+    },
+    "review": {
+      "required_reads": [
+        "`<PROJECT_ROOT>/CONSTITUTION.md`",
+        "`<PROJECT_ROOT>/SCOPE.md`",
+        "relevant function block",
+        "relevant mission block",
+        "relevant input artifacts or design authority when the parent FB depends on them",
+        "relevant contract files",
+        "`docs/04_review_recovery.md`",
+        "`schemas/quality-report.schema.json`"
+      ],
+      "first_role": [
+        "`Reviewer`"
+      ],
+      "first_action": [
+        "audit against written artifacts and evidence"
+      ],
+      "do_not": [
+        "patch code during the review pass unless the user changes the task"
+      ]
+    },
+    "recovery": {
+      "required_reads": [
+        "`<PROJECT_ROOT>/SESSION_STATE.md`",
+        "current function block if it exists",
+        "current mission block if it exists",
+        "`<PROJECT_ROOT>/VERSION_LOG.md` if it exists",
+        "`<PROJECT_ROOT>/QUALITY_MEMORY.md` if it exists",
+        "`docs/04_review_recovery.md`",
+        "relevant broken-area artifacts"
+      ],
+      "first_role": [
+        "`Recovery Coordinator`"
+      ],
+      "first_action": [
+        "classify the failure and choose the smallest safe move"
+      ],
+      "do_not": [
+        "continue implementation by instinct"
+      ]
+    }
+  },
+  "protocol_rules": {
+    "three_layers": [
+      "`PROTOCOL_ROOT`",
+      "`RUNTIME_ROOT`",
+      "`PROJECT_ROOT`"
+    ],
+    "core_principles": [
+      "prefer the smallest useful scope",
+      "prefer the fewest dependencies",
+      "prefer the smallest safe change surface",
+      "prefer the clearest design that can be explained and verified"
+    ],
+    "plain_writing_rule": "Use plain language first. For models, clarity comes mainly from: - stable structure - explicit rules - short sections - consistent labels - examples and templates It does not come mainly from: - emoji - decorative emphasis - many repeated punctuation marks - aggressive formatting noise Emoji and visual emphasis can help a human skim a document, but they rarely improve model compliance in a meaningful way. In long prompts they often become noise. Recommended style: - use short section titles - use numbered stages and named artifacts - use tables only when comparing options or responsibilities - use bold sparingly for one term, not whole paragraphs - keep one rule per bullet when possible Avoid: - stacked emoji - repeated `###`, `!!!`, or similar visual shouting - mixing policy, examples, and exceptions in the same paragraph",
+    "preflight_rule": "Before `INIT`, the agent must run `Project Preflight` against the working path. The preflight must classify the project as: - `ready` - `bootstrap_required` - `blocked` If the result is `bootstrap_required`, initialize safe foundational files before entering the requested scene. If the result is `blocked`, ask only for the minimum missing context.",
+    "research_rule": "`Research` is a support capability, not a new scene, role, or stage. Use it mainly in: - `Spec Architect` work during `DISCOVERY`, `SPEC`, or `FB_DETAILING` - `Builder` work inside the active `MB` Two trigger types are allowed: - `user_triggered`: the user explicitly asks for search or lookup work - `system_triggered`: the active role sees a material need for external facts, tools, references, or technical solutions Execution rule: - `user_triggered` research may run immediately - `system_triggered` research requires user approval before any search begins - do not perform silent network research Accepted uses include: - simple market scan or similar-product review during spec work - searching for mature tools, libraries, services, or open-source projects - checking official docs, issues, changelogs, or workarounds for a bounded technical problem - gathering UI references, component directions, rendering approaches, or style precedents Every research run must be captured in artifacts instead of living only in chat. At minimum, record: - `query` - `trigger_type` - `why_now` - `sources` - `facts` - `candidates` - `recommendation` - `impact_on_fb_or_mb` Write those results into one or more of: - `DECISIONS.md` - the active `FB` - the active `MB` - a `RESEARCH_NOTE`",
+    "role_handoff_rule": "Scene paths define the sequence. Role handoffs define who owns the next step. Every scene must: - name the first active role - define the handoff condition for the next role - tell the user when a role change happens - require user confirmation before entering a higher-cost or higher-risk work type The Builder must not start from raw chat history. The Builder starts only after reading: - project constitution - quality rulebook - relevant feature or scope spec - current function block - current mission block - required input artifacts when the current `FB` or `MB` depends on them - current session state If one of those is missing, the Builder must stop and request the missing artifact rather than infer it.",
+    "issue_routing_rule": "Do not use vague fallback such as \"go back one step\". When a problem is found, route it by ownership: | Issue Type | Meaning | Route To | | :--- | :--- | :--- | | `spec_gap` | Goal, scope, acceptance, or contract is unclear or contradictory | `Spec Architect` | | `implementation_bug` | Specs are clear, but implementation is wrong | `Builder` | | `quality_evidence_gap` | Required checks, evidence, or quality report items are missing | `Builder` | | `state_drift` | `SESSION_STATE`, active `FB/MB`, or repository references do not match reality | `Recovery Coordinator` | | `environment_issue` | Toolchain, dependency, or runtime state blocks safe progress | `Recovery Coordinator` | | `review_context_gap` | The current actor lacks required context to make a safe judgment | current scene lead role | This rule applies in: - `Preflight` - scene work - build - review - recovery",
+    "bootstrap_rule": "If the user starts with only a repository and a scene, the agent must not ask for the SDD path again. Instead, the agent must: 1. read the repository bootstrap files 2. run `Project Preflight` 3. map the requested scene path 4. activate the first appropriate role 5. tell the user what happens next See `README.md` and `docs/06_session_bootstrap.md`.",
+    "failure_modes": [
+      "coding before the product goal is clear",
+      "the model inventing hidden requirements",
+      "the model inventing UI styling that should have come from an external visual authority",
+      "the model touching unrelated files",
+      "\"done\" claims without evidence",
+      "new sessions losing context and drifting",
+      "technical debt caused by unbounded implementation"
+    ]
+  },
+  "harness_rules": {
+    "purpose": [
+      "read one active mission block and its machine spec",
+      "run one bounded Builder loop through Codex CLI",
+      "enforce file-scope boundaries",
+      "run machine-checkable verification",
+      "persist runtime state and cross-session memory",
+      "stop, retry, or route to recovery using explicit rules"
+    ],
+    "execution_policy_rule": "The harness must load one protocol-level execution policy before any runnable `MB` starts. - policy file: `config/execution_policy.json` - schema file: `schemas/execution-policy.schema.json` This policy is fail-closed. If the policy file is missing, unreadable, or schema-invalid, `mb_runner` and `aipd_gate` must block execution before Codex starts. This wave only hardens: - explicit sandbox startup mode - sandbox-bypass prohibition - repo-local protected runtime paths It does not yet provide per-command interception for every model-generated shell or network action.",
+    "dual_preflight_rule": "Use one preflight script with two levels: - `session`: checks whether the project or conversation can start safely - `mb`: checks whether one specific mission block can be executed by the harness now `mb_runner` must always run `mb` preflight before invoking Codex CLI.",
+    "retry_feedback_rule": "If one attempt fails and retry is still allowed, `mb_runner` must inject all of the following into the next prompt: 1. `last_verification_digest` 2. `last_failure_reason` 3. `retry_count` Do not retry with a generic \"try again\" prompt. When memory lookup finds relevant prior failures or validated patterns, inject them as `Memory Context` in the same prompt packet.",
+    "structural_route_rule": "If the Builder explicitly reports a structural blocker such as: - `spec_gap` - `state_drift` - `environment_issue` - `review_context_gap` - blocked contract or missing-input conflicts that prevent a compliant run then `mb_runner` must route the attempt to recovery before verification retry. Do not collapse an explicit structural block into a generic verification retry.",
+    "runtime_state_rule": "Machine state lives in: - `<PROJECT_ROOT>/runtime/state/<mb_id>.state.json` Suggested status values: - `ready` - `running` - `verifying` - `passed` - `failed` - `blocked` - `routed_to_recovery` `SESSION_STATE.md` remains the human-readable bridge summary. The machine runtime state is the execution source of truth. For runnable `MB`s, `SESSION_STATE.md` is runtime-managed. Do not list `SESSION_STATE.md` under `required_artifact_updates` in a runnable mission block. The Builder may read `SESSION_STATE.md`, but session-state syncing belongs to the harness runtime. `autonomy_level`, `approval_status`, and `review_required` belong in machine runtime state, not only in markdown. Supported autonomy levels: - `L1_human_approval` - `L2_auto_with_review` - `L3_full_auto`",
+    "non_git_workspace_rule": "The harness may run against a plain directory instead of a Git repository. In that case: - `scope_guard.py` remains the file-boundary authority - the Builder should not use `git status` or `git diff` just to report changed files - changed-file reporting should describe direct edits instead of depending on repository diff commands `scope_guard.py` is a repo-local file-boundary auditor, not a full-system sandbox. This wave protects `runtime/state/`, `runtime/memory/`, `runtime/gate_outcomes/`, and `runtime/locks/` as runtime-owned paths. It may ignore artifacts produced inside the current attempt directory under `runtime/attempts/<mb_id>/<attempt_id>/`, but it must still report and block writes to other protected runtime paths. It does not claim to detect: - repo-external file writes - network side effects - every model-internal command choice during execution",
+    "memory_bridge_rule": "`project_memory.json` and `failure_log.json` are the machine memory sources of truth. The harness must bridge them in two directions: - machine -> machine: inject relevant patterns into the next Builder prompt - machine -> human: sync reusable summaries into `QUALITY_MEMORY.md` Do not treat `QUALITY_MEMORY.md` as the machine memory source of truth.",
+    "verification_report_vs_digest": "These are different artifacts and must not share the same meaning. - `verification_report.json` is the full evidence file written to one attempt directory - `last_verification_digest` is a compact summary derived from the latest report for retry prompt injection `last_verification_digest` is not an independent source-of-truth file. It is generated by `mb_runner` from `last_verification_report_path` before the next retry prompt is assembled."
+  },
+  "builder_runtime_contract": {
+    "core_rules": [
+      "Read the required artifacts before coding.",
+      "The active `FB` and active `MB` remain the only execution standard.",
+      "When one machine sidecar exists, treat it as the runtime execution contract for prompt assembly, verification, retry limits, and scope enforcement.",
+      "Stay inside `allowed_files` and `allowed_touch` and do not expand scope.",
+      "If the active artifacts conflict with reality, stop and report the conflict instead of inventing a new design.",
+      "If required upstream inputs are missing or unreadable, stop instead of guessing.",
+      "If the parent `FB` uses `external_ui_package` or `hybrid`, treat the approved external UI package as an input authority for presentation only, not as a replacement for the `FB`, `MB`, business rules, acceptance, or quality gates.",
+      "Even when an external UI package exists, continue to execute against `acceptance_slice`, `ontology_elements_in_scope`, `affected_layers_in_scope`, `selected_quality_checks`, and `allowed_files`.",
+      "In external UI delivery mode, limit yourself to integration work: states, routing, validation, API calls, and the smallest necessary structural adjustments.",
+      "If the referenced experience prompt declares a shared page family contract, preserve that shell contract during integration and treat `must_preserve`, `allowed_variation`, and `forbidden_drift` as binding constraints.",
+      "If the UI package conflicts with the current `FB`, `MB`, or declared family contract, stop and route the conflict instead of choosing your own interpretation.",
+      "Use research only for the active `MB` when external facts materially help resolve a bounded technical gap, tool choice, or implementation blocker.",
+      "`user_triggered` research may run immediately. `system_triggered` research requires user approval before any search begins.",
+      "Record adopted research outcomes in artifacts (active `MB`, `DECISIONS`, or `RESEARCH_NOTE`) instead of leaving them only in chat.",
+      "If retry feedback is present, use `last_verification_digest`, `last_failure_reason`, and `retry_count` as binding repair input instead of repeating the same attempt blindly.",
+      "If `Memory Context` is present, treat its avoid/prefer guidance as binding until new evidence proves otherwise.",
+      "Return evidence, let the harness runtime sync session state, and follow the mission packet autonomy level instead of self-approving.",
+      "If the workspace is not a Git repository, do not use `git status` or `git diff` to decide completion or report changed files. Report only the files you directly edited."
+    ],
+    "required_inputs": [
+      "`<PROJECT_ROOT>/CONSTITUTION.md`",
+      "`<PROJECT_ROOT>/QUALITY_RULEBOOK.md`",
+      "relevant scope or contract files",
+      "active function block",
+      "active mission block",
+      "active mission machine sidecar when it exists",
+      "required input artifacts when the current `FB` or `MB` depends on them",
+      "`<PROJECT_ROOT>/SESSION_STATE.md`",
+      "relevant adopted research artifacts when the active `MB` references them",
+      "relevant experience prompt artifacts when the active `MB` references them"
+    ],
+    "forbidden_behaviors": [
+      "rewriting architecture on your own",
+      "broad cleanup refactors",
+      "claiming completion without evidence",
+      "ignoring a `blocked` preflight result",
+      "rewriting specs instead of routing a `spec_gap`",
+      "letting an external UI package override `FB` ontology, `MB` scope, acceptance, business rules, or quality gates",
+      "inventing visual styling when the parent `FB` declares external delivery",
+      "drifting a shared page-family shell outside the allowed variation declared by the approved experience prompt",
+      "running system-triggered research without user approval",
+      "using research to silently expand `MB` scope",
+      "ignoring `last_verification_digest` on retry",
+      "ignoring `Memory Context` when it is present",
+      "treating a retry summary as a replacement for the full `verification_report.json`",
+      "using `git status` or `git diff` in a non-git workspace just to report changed files or scope"
+    ]
+  }
+}

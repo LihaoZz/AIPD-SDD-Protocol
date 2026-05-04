@@ -8,20 +8,15 @@ from pathlib import Path
 from typing import Any
 
 from harness_common import (
+    execution_policy_path,
+    load_execution_policy,
     local_timestamp,
     local_timezone_name,
     read_json,
+    resolve_execution_policy,
     resolve_path,
     validate_with_schema,
     write_json,
-)
-
-
-DANGEROUS_ACTION_PATTERNS = (
-    "--dangerously-bypass-approvals-and-sandbox",
-    "rm -rf",
-    "git reset --hard",
-    "git clean -fd",
 )
 
 
@@ -65,13 +60,57 @@ def run_pre_tool_hook(
     action_text = " ".join(command)
     status = "pass"
     summary = "Pre-tool checks passed."
-    if any(pattern in action_text for pattern in DANGEROUS_ACTION_PATTERNS):
+    policy_path = execution_policy_path()
+    matched_forbidden_patterns: list[str] = []
+    matched_forbidden_path_prefixes: list[str] = []
+    sandbox_requested = None
+    sandbox_ok = False
+    policy_error = None
+
+    try:
+        policy = resolve_execution_policy(
+            load_execution_policy(policy_path),
+            spec.get("mb_id"),
+            attempt_root.name,
+        )
+    except Exception as exc:  # noqa: BLE001
+        policy = None
+        policy_error = str(exc)
         status = "block"
-        summary = "Blocked dangerous tool action."
-    elif not spec.get("allowed_touch"):
+        summary = "Blocked execution because execution policy is missing or invalid."
+
+    if policy is not None:
+        matched_forbidden_patterns = [
+            pattern for pattern in policy["forbidden_command_patterns"] if pattern in action_text
+        ]
+        if matched_forbidden_patterns:
+            status = "block"
+            summary = "Blocked execution because the command matched forbidden execution policy patterns."
+
+        matched_forbidden_path_prefixes = [
+            prefix for prefix in policy["forbidden_path_prefixes"] if prefix in action_text
+        ]
+        if matched_forbidden_path_prefixes:
+            status = "block"
+            summary = "Blocked execution because the command referenced forbidden path prefixes."
+
+        if "--dangerously-bypass-approvals-and-sandbox" in command and not policy["sandbox"]["allow_bypass"]:
+            status = "block"
+            summary = "Blocked execution because sandbox bypass is forbidden by execution policy."
+
+        if "--sandbox" in command:
+            sandbox_index = command.index("--sandbox")
+            if sandbox_index + 1 < len(command):
+                sandbox_requested = command[sandbox_index + 1]
+        sandbox_ok = sandbox_requested == policy["sandbox"]["mode"]
+        if not sandbox_ok:
+            status = "block"
+            summary = "Blocked execution because the command does not request the required sandbox mode."
+
+    if status == "pass" and not spec.get("allowed_touch"):
         status = "block"
         summary = "Blocked execution because allowed_touch is empty."
-    elif set(spec.get("allowed_touch", [])) & set(spec.get("forbidden_touch", [])):
+    elif status == "pass" and set(spec.get("allowed_touch", [])) & set(spec.get("forbidden_touch", [])):
         status = "block"
         summary = "Blocked execution because allowed_touch overlaps forbidden_touch."
 
@@ -87,6 +126,14 @@ def run_pre_tool_hook(
             "command": command,
             "allowed_touch": spec.get("allowed_touch", []),
             "forbidden_touch": spec.get("forbidden_touch", []),
+            "policy_path": str(policy_path),
+            "policy_error": policy_error,
+            "matched_forbidden_command_patterns": matched_forbidden_patterns,
+            "matched_forbidden_path_prefixes": matched_forbidden_path_prefixes,
+            "sandbox_required": policy["sandbox"]["mode"] if policy is not None else None,
+            "sandbox_requested": sandbox_requested,
+            "sandbox_ok": sandbox_ok,
+            "allow_bypass": policy["sandbox"]["allow_bypass"] if policy is not None else None,
         },
     )
     return _write_hook_event(attempt_root / "pre_tool_hook.json", event)

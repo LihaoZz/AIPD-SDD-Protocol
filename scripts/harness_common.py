@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -12,6 +15,7 @@ from jsonschema import Draft202012Validator
 
 
 PROTOCOL_ROOT = Path(__file__).resolve().parent.parent
+EXECUTION_POLICY_ENV = "AIPD_EXECUTION_POLICY_PATH"
 REQUIRED_PROJECT_FILES = [
     "CONSTITUTION.md",
     "SCOPE.md",
@@ -34,9 +38,27 @@ def read_json(path: Path) -> Any:
     return json.loads(read_text(path))
 
 
-def write_json(path: Path, data: Any) -> None:
+def write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            delete=False,
+            suffix=".tmp",
+        ) as handle:
+            handle.write(content)
+            temp_path = Path(handle.name)
+        os.replace(temp_path, path)
+    finally:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink(missing_ok=True)
+
+
+def write_json(path: Path, data: Any) -> None:
+    write_text(path, json.dumps(data, ensure_ascii=True, indent=2) + "\n")
 
 
 def local_timestamp() -> str:
@@ -98,6 +120,47 @@ def eval_asset_path(project_root: Path, raw_ref: str) -> Path:
     return normalize_relpath(project_root, raw_ref)
 
 
+def execution_policy_path() -> Path:
+    override = os.environ.get(EXECUTION_POLICY_ENV)
+    if override:
+        return resolve_path(override)
+    return PROTOCOL_ROOT / "config" / "execution_policy.json"
+
+
+def execution_policy_errors(path: Path | None = None) -> list[str]:
+    target = path or execution_policy_path()
+    if not target.is_file():
+        return [f"missing execution policy: {target}"]
+    try:
+        payload = read_json(target)
+    except Exception as exc:  # noqa: BLE001
+        return [f"execution policy unreadable: {exc}"]
+    schema_errors = validate_with_schema(payload, "execution-policy.schema.json")
+    if schema_errors:
+        return [f"execution policy invalid: {error}" for error in schema_errors]
+    return []
+
+
+def load_execution_policy(path: Path | None = None) -> dict[str, Any]:
+    target = path or execution_policy_path()
+    errors = execution_policy_errors(target)
+    if errors:
+        raise ValueError("; ".join(errors))
+    return read_json(target)
+
+
+def resolve_execution_policy(policy: dict[str, Any], mb_id: str | None, attempt_id: str | None) -> dict[str, Any]:
+    resolved = deepcopy(policy)
+    replacements = {
+        "mb_id": mb_id or "{mb_id}",
+        "attempt_id": attempt_id or "{attempt_id}",
+    }
+    for key in ("forbidden_path_prefixes", "protected_runtime_prefixes", "ignored_runtime_prefixes"):
+        values = resolved.get(key, [])
+        resolved[key] = [value.format(**replacements) for value in values]
+    return resolved
+
+
 def runtime_dir(project_root: Path) -> Path:
     return project_root / "runtime"
 
@@ -148,7 +211,16 @@ def markdown_field(path: Path, field: str) -> str | None:
 
 
 def normalize_relpath(project_root: Path, raw: str) -> Path:
-    return (project_root / raw).resolve()
+    candidate = Path(raw).expanduser()
+    if candidate.is_absolute():
+        raise ValueError(f"path must be project-relative: {raw}")
+    resolved = (project_root / candidate).resolve()
+    root = project_root.resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"path must stay within project root: {raw}") from exc
+    return resolved
 
 
 def initialize_runtime_memory(project_root: Path) -> None:

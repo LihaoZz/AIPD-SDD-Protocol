@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -30,18 +31,34 @@ class HarnessTestCase(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
 
-    def run_python(self, script: str, *args: str, expected: int | None = 0) -> subprocess.CompletedProcess[str]:
+    def run_python(
+        self,
+        script: str,
+        *args: str,
+        expected: int | None = 0,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        command_env = os.environ.copy()
+        if env:
+            command_env.update(env)
         completed = subprocess.run(
             [sys.executable, str(REPO_ROOT / "scripts" / script), *args],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
+            env=command_env,
         )
         if expected is not None:
             self.assertEqual(completed.returncode, expected, msg=completed.stdout + completed.stderr)
         return completed
 
-    def run_mb(self, mb_id: str, *extra_args: str, expected: int | None = 0) -> subprocess.CompletedProcess[str]:
+    def run_mb(
+        self,
+        mb_id: str,
+        *extra_args: str,
+        expected: int | None = 0,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         return self.run_python(
             "mb_runner.py",
             "--project-root",
@@ -56,9 +73,16 @@ class HarnessTestCase(unittest.TestCase):
             str(FAKE_CODEX),
             *extra_args,
             expected=expected,
+            env=env,
         )
 
-    def run_gate(self, command: str, *extra_args: str, expected: int | None = 0) -> subprocess.CompletedProcess[str]:
+    def run_gate(
+        self,
+        command: str,
+        *extra_args: str,
+        expected: int | None = 0,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         provider_args = (
             ["--minimax-command", str(FAKE_CODEX), "--deepseek-command", str(FAKE_CODEX)]
             if command == "attempt-start"
@@ -72,6 +96,7 @@ class HarnessTestCase(unittest.TestCase):
             *provider_args,
             *extra_args,
             expected=expected,
+            env=env,
         )
 
     def read_json(self, relative_path: str) -> dict:
@@ -230,6 +255,132 @@ class HarnessTestCase(unittest.TestCase):
         )
         self.assertIn('"result": "blocked"', completed.stdout)
 
+    def test_mb_preflight_blocks_invalid_mission_contract(self) -> None:
+        mission_path = self.project_root / "missions" / "fb1-mb1.md"
+        mission_text = mission_path.read_text(encoding="utf-8").replace(
+            "- `required_artifact_updates`: none",
+            "- `required_artifact_updates`: SESSION_STATE.md",
+        )
+        mission_path.write_text(mission_text, encoding="utf-8")
+
+        completed = self.run_python(
+            "preflight.py",
+            "--level",
+            "mb",
+            "--project-root",
+            str(self.project_root),
+            "--mb-id",
+            "fb1-mb1",
+        )
+
+        self.assertIn('"result": "blocked"', completed.stdout)
+        self.assertIn("required_artifact_updates", completed.stdout)
+
+    def test_mb_preflight_blocks_when_execution_policy_is_missing(self) -> None:
+        missing_policy = self.project_root / "missing_execution_policy.json"
+        completed = self.run_python(
+            "preflight.py",
+            "--level",
+            "mb",
+            "--project-root",
+            str(self.project_root),
+            "--mb-id",
+            "fb1-mb1",
+            env={"AIPD_EXECUTION_POLICY_PATH": str(missing_policy)},
+        )
+        self.assertIn('"result": "blocked"', completed.stdout)
+        self.assertIn("missing execution policy", completed.stdout)
+
+    def test_mb_runner_blocks_when_execution_policy_is_invalid(self) -> None:
+        invalid_policy = self.project_root / "invalid_execution_policy.json"
+        invalid_policy.write_text('{"schema_version":"broken"}', encoding="utf-8")
+        completed = self.run_mb(
+            "fb1-mb1",
+            expected=1,
+            env={"AIPD_EXECUTION_POLICY_PATH": str(invalid_policy)},
+        )
+        self.assertIn("execution policy invalid", completed.stdout)
+
+    def test_aipd_gate_blocks_when_execution_policy_is_invalid(self) -> None:
+        invalid_policy = self.project_root / "invalid_execution_policy.json"
+        invalid_policy.write_text('{"schema_version":"broken"}', encoding="utf-8")
+        completed = self.run_gate(
+            "attempt-start",
+            "--mb-id",
+            "fb1-mb1",
+            expected=1,
+            env={"AIPD_EXECUTION_POLICY_PATH": str(invalid_policy)},
+        )
+        self.assertIn("execution policy invalid", completed.stderr)
+
+    def test_mb_preflight_blocks_machine_spec_path_escape(self) -> None:
+        spec_path = self.project_root / "missions" / "fb1-mb1.machine.json"
+        spec = self.read_json("missions/fb1-mb1.machine.json")
+        spec["context_files"] = ["../outside.py"]
+        spec_path.write_text(json.dumps(spec), encoding="utf-8")
+
+        completed = self.run_python(
+            "preflight.py",
+            "--level",
+            "mb",
+            "--project-root",
+            str(self.project_root),
+            "--mb-id",
+            "fb1-mb1",
+        )
+
+        self.assertIn('"result": "blocked"', completed.stdout)
+        self.assertIn("path must stay within project root", completed.stdout)
+
+    def test_verifier_rejects_shell_chaining_and_does_not_execute_payload(self) -> None:
+        spec_path = self.project_root / "missions" / "fb1-mb1.machine.json"
+        spec = self.read_json("missions/fb1-mb1.machine.json")
+        spec["acceptance"][0]["command"] = (
+            "python3 -c \"import sys; sys.exit(0)\" "
+            "&& python3 -c \"from pathlib import Path; Path('src/hacked.txt').write_text('x', encoding='utf-8')\""
+        )
+        spec_path.write_text(json.dumps(spec), encoding="utf-8")
+
+        temp_runtime = self.project_root / "runtime" / "verifier-test"
+        temp_runtime.mkdir(parents=True, exist_ok=True)
+        changed_files_path = temp_runtime / "changed_files.json"
+        scope_result_path = temp_runtime / "scope_result.json"
+        report_path = temp_runtime / "verification_report.json"
+        changed_files_path.write_text(json.dumps(["src/app.py"]), encoding="utf-8")
+        scope_result_path.write_text(
+            json.dumps(
+                {
+                    "status": "pass",
+                    "changed_files": ["src/app.py"],
+                    "violating_files": [],
+                    "summary": "All file changes stayed within allowed_touch.",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        self.run_python(
+            "verifier.py",
+            "--project-root",
+            str(self.project_root),
+            "--spec",
+            str(spec_path),
+            "--attempt-id",
+            "attempt-001",
+            "--changed-files-json",
+            str(changed_files_path),
+            "--scope-result-json",
+            str(scope_result_path),
+            "--output",
+            str(report_path),
+            expected=1,
+        )
+
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertEqual(report["checks"][0]["status"], "fail")
+        self.assertIn("unsupported shell control tokens", report["checks"][0]["evidence"])
+        self.assertFalse((self.project_root / "src" / "hacked.txt").exists())
+
     def test_mb_runner_success_writes_state_and_memory(self) -> None:
         self.run_mb("fb1-mb1")
         state = self.read_json("runtime/state/fb1-mb1.state.json")
@@ -247,6 +398,10 @@ class HarnessTestCase(unittest.TestCase):
         self.assertTrue((self.project_root / "runtime" / "attempts" / "fb1-mb1" / "attempt-001" / "pre_tool_hook.json").exists())
         self.assertTrue((self.project_root / "runtime" / "attempts" / "fb1-mb1" / "attempt-001" / "post_tool_hook.json").exists())
         self.assertTrue((self.project_root / "runtime" / "attempts" / "fb1-mb1" / "attempt-001" / "stop_hook.json").exists())
+        self.assertTrue((self.project_root / "runtime" / "attempts" / "fb1-mb1" / "attempt-001" / "resolved_execution_policy.json").exists())
+        execution_result = self.read_json("runtime/attempts/fb1-mb1/attempt-001/execution_result.json")
+        self.assertIn("--sandbox", execution_result["command"])
+        self.assertIn("workspace-write", execution_result["command"])
         start_outcome = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_start_gate_outcome.json")
         finish_outcome = self.read_json("runtime/attempts/fb1-mb1/attempt-001/attempt_finish_gate_outcome.json")
         self.assertEqual(start_outcome["symphony_instruction"]["action"], "dispatch_agent")
@@ -441,6 +596,20 @@ class HarnessTestCase(unittest.TestCase):
         self.assertEqual(finish_outcome["symphony_instruction"]["action"], "stop_and_route_recovery")
         failure_log = self.read_json("runtime/memory/failure_log.json")
         self.assertEqual(failure_log["failures"][0]["failure_type"], "scope_violation")
+
+    def test_mb_runner_protected_runtime_touch_routes_recovery(self) -> None:
+        self.run_mb("fb1-mb8", expected=1)
+        state = self.read_json("runtime/state/fb1-mb8.state.json")
+        self.assertEqual(state["status"], "routed_to_recovery")
+        scope_report = self.read_json("runtime/attempts/fb1-mb8/attempt-001/scope_guard.json")
+        self.assertIn("runtime/state/fb1-mb8.state.json", scope_report["protected_runtime_touches"])
+        self.assertIn("runtime/state/fb1-mb8.state.json", scope_report["violating_files"])
+
+    def test_scope_guard_ignores_current_attempt_artifacts(self) -> None:
+        self.run_mb("fb1-mb1")
+        scope_report = self.read_json("runtime/attempts/fb1-mb1/attempt-001/scope_guard.json")
+        self.assertIn("runtime/attempts/fb1-mb1/attempt-001/execution_result.json", scope_report["ignored_files"])
+        self.assertNotIn("runtime/attempts/fb1-mb1/attempt-001/execution_result.json", scope_report["violating_files"])
 
     def test_mb_runner_retry_uses_verification_feedback_then_passes(self) -> None:
         self.run_mb("fb1-mb3")
@@ -666,6 +835,24 @@ class HarnessTestCase(unittest.TestCase):
             "rm -rf /tmp/danger",
             expected=1,
         )
+        self.assertIn('"status": "block"', completed.stdout)
+
+    def test_pre_tool_hook_blocks_sandbox_bypass_flag(self) -> None:
+        attempt_dir = self.project_root / "runtime" / "attempts" / "fb1-mb1" / "attempt-001"
+        attempt_dir.mkdir(parents=True, exist_ok=True)
+        completed = self.run_python(
+            "pre_tool_hook.py",
+            "--project-root",
+            str(self.project_root),
+            "--spec",
+            str(self.project_root / "missions" / "fb1-mb1.machine.json"),
+            "--attempt-dir",
+            str(attempt_dir),
+            "--tool-action",
+            "codex exec --dangerously-bypass-approvals-and-sandbox",
+            expected=1,
+        )
+        self.assertIn('"sandbox_ok": false', completed.stdout)
         self.assertIn('"status": "block"', completed.stdout)
 
     def test_stop_hook_blocks_when_verification_is_missing(self) -> None:

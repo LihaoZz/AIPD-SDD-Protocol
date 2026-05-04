@@ -14,6 +14,7 @@ from typing import Any
 
 from harness_common import (
     attempt_dir,
+    load_execution_policy,
     initialize_runtime_memory,
     local_timezone_name,
     mb_preflight_path,
@@ -21,6 +22,7 @@ from harness_common import (
     mission_markdown_path,
     read_json,
     read_text,
+    resolve_execution_policy,
     resolve_path,
     runtime_state_path,
     local_timestamp,
@@ -31,7 +33,7 @@ from hook_runtime import run_post_tool_hook, run_pre_tool_hook, run_stop_hook
 from memory_bridge import lookup_memory_context, render_memory_context
 from preflight import mb_preflight
 from provider_registry import ensure_known_provider, load_provider_registry
-from scope_guard import changed_files, evaluate_scope, snapshot_workspace
+from scope_guard import changed_files, diff_snapshots, evaluate_scope, snapshot_workspace
 from state_writer import append_failure_log, append_project_memory, load_state, sync_session_state, write_state
 from verifier import run_verification
 
@@ -302,6 +304,7 @@ def build_codex_exec_command(
     project_root: Path,
     attempt_root: Path,
     codex_command: str,
+    sandbox_mode: str,
     model: str | None,
     json_output: bool,
 ) -> list[str]:
@@ -312,6 +315,8 @@ def build_codex_exec_command(
         "--cd",
         str(project_root),
         "--skip-git-repo-check",
+        "--sandbox",
+        sandbox_mode,
         "--full-auto",
         "--ephemeral",
         "--color",
@@ -611,15 +616,15 @@ def attempt_start(
 
     current_attempt_dir = attempt_dir(project_root, mb_id, attempt_id)
     current_attempt_dir.mkdir(parents=True, exist_ok=True)
+    execution_policy = resolve_execution_policy(load_execution_policy(), mb_id, attempt_id)
+    resolved_policy_path = current_attempt_dir / "resolved_execution_policy.json"
+    write_json(resolved_policy_path, execution_policy)
 
     memory_context = lookup_memory_context(project_root, spec, state)
     prompt = build_prompt(project_root, spec, state, memory_context)
     prompt_path = current_attempt_dir / "prompt.md"
     prompt_path.write_text(prompt, encoding="utf-8")
 
-    before = snapshot_workspace(project_root)
-    before_path = current_attempt_dir / "before_snapshot.json"
-    write_json(before_path, before)
     provider_routing_path = current_attempt_dir / "provider_routing.json"
     write_json(
         provider_routing_path,
@@ -644,6 +649,10 @@ def attempt_start(
     increment_provider_counter(state, "provider_attempt_counts", provider)
     write_state(project_root, state)
 
+    before = snapshot_workspace(project_root)
+    before_path = current_attempt_dir / "before_snapshot.json"
+    write_json(before_path, before)
+
     start_outcome = build_gate_outcome(
         gate="attempt_start",
         mb_id=mb_id,
@@ -662,6 +671,7 @@ def attempt_start(
             str(mb_preflight_path(project_root, mb_id).relative_to(project_root)),
             str(before_path.relative_to(project_root)),
             str(provider_routing_path.relative_to(project_root)),
+            str(resolved_policy_path.relative_to(project_root)),
         ],
         state_ref=str(runtime_state_path(project_root, mb_id).relative_to(project_root)),
     )
@@ -671,6 +681,7 @@ def attempt_start(
         project_root,
         current_attempt_dir,
         provider_command(provider, codex_command, minimax_command, deepseek_command),
+        execution_policy["sandbox"]["mode"],
         model,
         json_output,
     )
@@ -767,7 +778,12 @@ def attempt_finish(
     changes = changed_files(before, after)
     write_json(current_attempt_dir / "changed_files.json", changes)
     run_post_tool_hook(spec, current_attempt_dir, execution, changes)
-    scope_result = evaluate_scope(changes, spec["allowed_touch"], spec["forbidden_touch"])
+    scope_result = evaluate_scope(
+        diff_snapshots(before, after),
+        spec["allowed_touch"],
+        spec["forbidden_touch"],
+        resolve_execution_policy(load_execution_policy(), mb_id, attempt_id),
+    )
     scope_path = current_attempt_dir / "scope_guard.json"
     write_json(scope_path, scope_result)
 

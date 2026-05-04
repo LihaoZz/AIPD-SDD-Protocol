@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -8,12 +9,21 @@ from pathlib import Path
 from typing import Optional
 
 from jsonschema import Draft202012Validator
+from protocol_derivatives_common import (
+    COMPACT_SOURCE_PATHS,
+    TRANSLATION_SOURCE_PATHS,
+    ZH_AUTHORITY_NOTE,
+    generated_translation_path,
+    translation_source_path,
+)
 
 
 PROTOCOL_ROOT = Path(__file__).resolve().parent.parent
 
 PROTOCOL_FILES = [
+    "HARNESS.md",
     "README.md",
+    "config/execution_policy.json",
     "docs/00_lifecycle.md",
     "docs/01_principles.md",
     "docs/02_artifacts.md",
@@ -29,15 +39,24 @@ PROTOCOL_FILES = [
     "prompts/BUILDER.system.md",
     "prompts/REVIEWER.system.md",
     "schemas/aipd-gate-outcome.schema.json",
+    "schemas/execution-policy.schema.json",
     "schemas/eval-asset.schema.json",
     "schemas/hook-event.schema.json",
+    "schemas/protocol-compact.schema.json",
     "schemas/quality-report.schema.json",
     "scripts/codex_exec_with_hooks.py",
+    "scripts/generate_protocol_derivatives.py",
     "scripts/hook_runtime.py",
     "scripts/memory_bridge.py",
+    "scripts/mb_runner.py",
     "scripts/post_tool_hook.py",
     "scripts/pre_tool_hook.py",
+    "scripts/preflight.py",
+    "scripts/protocol_derivatives_common.py",
+    "scripts/scope_guard.py",
+    "scripts/state_writer.py",
     "scripts/stop_hook.py",
+    "scripts/verifier.py",
     "templates/API_CONTRACT.template.md",
     "templates/CONSTITUTION.template.md",
     "templates/DATA_MODEL.template.md",
@@ -559,6 +578,8 @@ def validate_protocol(root: Path) -> list[str]:
             if rel_path in PROTOCOL_REQUIRED_SNIPPETS:
                 require_snippets(path, PROTOCOL_REQUIRED_SNIPPETS[rel_path], errors, root)
     errors.extend(validate_gate_outcome_examples(root))
+    errors.extend(validate_execution_policy_config(root))
+    errors.extend(validate_protocol_derivatives(root))
     return errors
 
 
@@ -607,6 +628,127 @@ def validate_gate_outcome_examples(root: Path) -> list[str]:
         require_file(path, errors, root)
         if path.is_file():
             errors.extend(validate_gate_outcome(path, root))
+    return errors
+
+
+def validate_execution_policy_config(root: Path) -> list[str]:
+    path = root / "config" / "execution_policy.json"
+    if not path.is_file():
+        return []
+    try:
+        data = read_json(path)
+    except json.JSONDecodeError as exc:
+        return [f"{display_path(path, root)} is not valid JSON: {exc}"]
+    schema_path = root / "schemas" / "execution-policy.schema.json"
+    schema_errors = validate_json_with_schema_file(data, schema_path)
+    return [f"{display_path(path, root)} {err}" for err in schema_errors]
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def validate_protocol_derivatives(root: Path) -> list[str]:
+    errors: list[str] = []
+
+    compact_path = root / "generated" / "protocol_compact.json"
+    manifest_path = root / "generated" / "protocol_derivatives_manifest.json"
+    require_file(compact_path, errors, root)
+    require_file(manifest_path, errors, root)
+    if compact_path.is_file():
+        try:
+            compact_data = read_json(compact_path)
+        except json.JSONDecodeError as exc:
+            fail(f"{display_path(compact_path, root)} is not valid JSON: {exc}", errors)
+        else:
+            schema_errors = validate_json_with_schema_file(
+                compact_data,
+                root / "schemas" / "protocol-compact.schema.json",
+            )
+            errors.extend(f"{display_path(compact_path, root)} {err}" for err in schema_errors)
+
+    if not manifest_path.is_file():
+        return errors
+
+    try:
+        manifest = read_json(manifest_path)
+    except json.JSONDecodeError as exc:
+        fail(f"{display_path(manifest_path, root)} is not valid JSON: {exc}", errors)
+        return errors
+
+    if manifest.get("schema_version") != "1.0":
+        fail(f"{display_path(manifest_path, root)} must set schema_version to 1.0", errors)
+
+    source_digests = manifest.get("source_digests")
+    if not isinstance(source_digests, dict):
+        fail(f"{display_path(manifest_path, root)} missing source_digests map", errors)
+        return errors
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, dict):
+        fail(f"{display_path(manifest_path, root)} missing artifacts map", errors)
+        return errors
+
+    expected_sources = sorted(
+        set(COMPACT_SOURCE_PATHS)
+        | set(TRANSLATION_SOURCE_PATHS)
+        | {translation_source_path(rel).as_posix() for rel in TRANSLATION_SOURCE_PATHS}
+    )
+    if sorted(source_digests.keys()) != expected_sources:
+        fail(f"{display_path(manifest_path, root)} source_digests keys do not match expected derivative sources", errors)
+
+    for rel_path in expected_sources:
+        path = root / rel_path
+        require_file(path, errors, root)
+        if path.is_file():
+            actual = sha256_file(path)
+            recorded = source_digests.get(rel_path)
+            if recorded != actual:
+                fail(f"{display_path(manifest_path, root)} stale source digest for {rel_path}", errors)
+
+    expected_artifacts = {"generated/protocol_compact.json"}
+    expected_artifacts.update(generated_translation_path(rel).as_posix() for rel in TRANSLATION_SOURCE_PATHS)
+    if set(artifacts.keys()) != expected_artifacts:
+        fail(f"{display_path(manifest_path, root)} artifact keys do not match expected generated outputs", errors)
+
+    for rel_path in sorted(expected_artifacts):
+        path = root / rel_path
+        require_file(path, errors, root)
+        meta = artifacts.get(rel_path)
+        if not isinstance(meta, dict):
+            fail(f"{display_path(manifest_path, root)} artifact metadata for {rel_path} must be an object", errors)
+            continue
+        if path.is_file():
+            actual = sha256_file(path)
+            if meta.get("sha256") != actual:
+                fail(f"{display_path(manifest_path, root)} stale artifact digest for {rel_path}", errors)
+
+    for source_rel in TRANSLATION_SOURCE_PATHS:
+        translation_source_rel = translation_source_path(source_rel).as_posix()
+        generated_rel = generated_translation_path(source_rel).as_posix()
+        generated_path = root / generated_rel
+        require_file(generated_path, errors, root)
+        if not generated_path.is_file():
+            continue
+        text = read_text(generated_path)
+        required_snippets = [
+            "GENERATED FILE - DO NOT EDIT DIRECTLY",
+            f"Source: {source_rel}",
+            f"Translation source: {translation_source_rel}",
+            f"Authority: {ZH_AUTHORITY_NOTE}",
+        ]
+        for snippet in required_snippets:
+            if snippet not in text:
+                fail(f"{display_path(generated_path, root)} missing generated header snippet: {snippet}", errors)
+
+        meta = artifacts.get(generated_rel)
+        expected_source_paths = [source_rel, translation_source_rel]
+        if isinstance(meta, dict) and meta.get("source_paths") != expected_source_paths:
+            fail(f"{display_path(manifest_path, root)} artifact {generated_rel} has wrong source_paths", errors)
+
+    compact_meta = artifacts.get("generated/protocol_compact.json")
+    if isinstance(compact_meta, dict) and compact_meta.get("source_paths") != list(COMPACT_SOURCE_PATHS):
+        fail(f"{display_path(manifest_path, root)} compact artifact has wrong source_paths", errors)
+
     return errors
 
 

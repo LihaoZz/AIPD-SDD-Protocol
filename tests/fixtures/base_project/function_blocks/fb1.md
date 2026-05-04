@@ -55,7 +55,7 @@
 
 ## Mission Plan
 
-- `planned_mbs`: fb1-mb1, fb1-mb2, fb1-mb3, fb1-mb4, fb1-mb5, fb1-mb6, fb1-mb7
+- `planned_mbs`: fb1-mb1, fb1-mb2, fb1-mb3, fb1-mb4, fb1-mb5, fb1-mb6, fb1-mb7, fb1-mb8
 - `next_recommended_mb`: fb1-mb1
 
 ## Usage Rules

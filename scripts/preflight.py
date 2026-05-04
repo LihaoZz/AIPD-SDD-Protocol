@@ -8,6 +8,8 @@ from pathlib import Path
 
 from harness_common import (
     REQUIRED_PROJECT_FILES,
+    execution_policy_errors,
+    execution_policy_path,
     function_block_path,
     initialize_runtime_memory,
     markdown_field,
@@ -25,6 +27,57 @@ from harness_common import (
     validate_with_schema,
     write_json,
 )
+
+
+def record_declared_path_check(
+    project_root: Path,
+    rel_path: str,
+    field_name: str,
+    checks: list[dict[str, str]],
+    blocking_items: list[str],
+    *,
+    must_exist: bool,
+) -> None:
+    try:
+        target = normalize_relpath(project_root, rel_path)
+    except ValueError as exc:
+        blocking_items.append(f"{field_name} invalid: {rel_path} ({exc})")
+        checks.append({"name": field_name, "status": "fail", "detail": rel_path})
+        return
+
+    if must_exist and not target.exists():
+        blocking_items.append(f"{field_name} missing: {rel_path}")
+        checks.append({"name": field_name, "status": "fail", "detail": rel_path})
+        return
+
+    checks.append({"name": field_name, "status": "pass", "detail": rel_path})
+
+
+def runtime_mission_contract_errors(project_root: Path, mission_path: Path, mb_id: str) -> list[str]:
+    errors: list[str] = []
+    machine_spec_ref = markdown_field(mission_path, "machine_spec_ref")
+    expected_spec_ref = f"missions/{mb_id}.machine.json"
+    if machine_spec_ref is None:
+        errors.append("mission missing machine_spec_ref")
+    elif machine_spec_ref != expected_spec_ref:
+        errors.append(f"mission machine_spec_ref mismatch: {machine_spec_ref}")
+    else:
+        try:
+            normalize_relpath(project_root, machine_spec_ref)
+        except ValueError as exc:
+            errors.append(f"mission machine_spec_ref invalid: {exc}")
+
+    required_artifact_updates = markdown_field(mission_path, "required_artifact_updates")
+    if (
+        required_artifact_updates is not None
+        and "SESSION_STATE.md" in required_artifact_updates
+        and machine_spec_ref is not None
+        and machine_spec_ref.lower() != "none"
+    ):
+        errors.append(
+            "mission must not list SESSION_STATE.md in required_artifact_updates for a runnable MB"
+        )
+    return errors
 
 
 def build_result(level: str, project_root: Path, mb_id: str | None, result: str, summary: str, missing_items: list[str], blocking_items: list[str], checks: list[dict[str, str]], autonomy_decision: str | None = None) -> dict[str, object]:
@@ -105,10 +158,24 @@ def mb_preflight(project_root: Path, mb_id: str) -> tuple[dict[str, object], lis
     blocking_items: list[str] = []
     autonomy_decision: str | None = None
 
+    policy_path = execution_policy_path()
+    policy_errors = execution_policy_errors(policy_path)
+    if policy_errors:
+        blocking_items.extend(policy_errors)
+        checks.append({"name": "execution_policy", "status": "fail", "detail": "; ".join(policy_errors)})
+    else:
+        checks.append({"name": "execution_policy", "status": "pass", "detail": str(policy_path)})
+
     mission_md = mission_markdown_path(project_root, mb_id)
     spec_path = mission_machine_spec_path(project_root, mb_id)
     if mission_md.is_file():
         checks.append({"name": "mission_markdown", "status": "pass", "detail": str(mission_md.relative_to(project_root))})
+        mission_errors = runtime_mission_contract_errors(project_root, mission_md, mb_id)
+        if mission_errors:
+            blocking_items.extend([f"mission markdown invalid: {err}" for err in mission_errors])
+            checks.append({"name": "mission_markdown_contract", "status": "fail", "detail": "; ".join(mission_errors)})
+        else:
+            checks.append({"name": "mission_markdown_contract", "status": "pass", "detail": "valid"})
     else:
         blocking_items.append(f"mission markdown missing: {mission_md.name}")
         checks.append({"name": "mission_markdown", "status": "fail", "detail": mission_md.name})
@@ -135,26 +202,76 @@ def mb_preflight(project_root: Path, mb_id: str) -> tuple[dict[str, object], lis
         if spec_data.get("mb_id") != mb_id:
             blocking_items.append(f"machine spec mb_id mismatch: {spec_data.get('mb_id')}")
         parent_fb_id = spec_data.get("parent_fb_id")
-        if not function_block_path(project_root, parent_fb_id).is_file():
+        parent_fb_path = function_block_path(project_root, parent_fb_id)
+        if not parent_fb_path.is_file():
             blocking_items.append(f"parent function block missing: {parent_fb_id}")
             checks.append({"name": "parent_fb", "status": "fail", "detail": str(parent_fb_id)})
         else:
             checks.append({"name": "parent_fb", "status": "pass", "detail": str(parent_fb_id)})
+
+        for rel_path in spec_data.get("context_files", []):
+            record_declared_path_check(
+                project_root,
+                rel_path,
+                "context_file",
+                checks,
+                blocking_items,
+                must_exist=True,
+            )
+
         for rel_path in spec_data.get("input_artifacts", []):
-            artifact = normalize_relpath(project_root, rel_path)
-            if artifact.exists():
-                checks.append({"name": "input_artifact", "status": "pass", "detail": rel_path})
-            else:
-                blocking_items.append(f"input artifact missing: {rel_path}")
-                checks.append({"name": "input_artifact", "status": "fail", "detail": rel_path})
+            record_declared_path_check(
+                project_root,
+                rel_path,
+                "input_artifact",
+                checks,
+                blocking_items,
+                must_exist=True,
+            )
 
         for rel_path in spec_data.get("eval_refs", []):
-            eval_asset = normalize_relpath(project_root, rel_path)
-            if eval_asset.exists():
-                checks.append({"name": "eval_asset", "status": "pass", "detail": rel_path})
-            else:
-                blocking_items.append(f"eval asset missing: {rel_path}")
-                checks.append({"name": "eval_asset", "status": "fail", "detail": rel_path})
+            record_declared_path_check(
+                project_root,
+                rel_path,
+                "eval_asset",
+                checks,
+                blocking_items,
+                must_exist=True,
+            )
+
+        for field_name in ("allowed_touch", "forbidden_touch"):
+            for rel_path in spec_data.get(field_name, []):
+                record_declared_path_check(
+                    project_root,
+                    rel_path,
+                    field_name,
+                    checks,
+                    blocking_items,
+                    must_exist=False,
+                )
+
+        concurrency = spec_data.get("concurrency") or {}
+        for field_name in ("exclusive_touch", "shared_read_artifacts", "shared_write_artifacts"):
+            for rel_path in concurrency.get(field_name, []):
+                record_declared_path_check(
+                    project_root,
+                    rel_path,
+                    field_name,
+                    checks,
+                    blocking_items,
+                    must_exist=False,
+                )
+
+        for item in spec_data.get("acceptance", []):
+            if item.get("type") in {"file_exists", "json_field"}:
+                record_declared_path_check(
+                    project_root,
+                    item["path"],
+                    f"acceptance_{item['type']}_path",
+                    checks,
+                    blocking_items,
+                    must_exist=False,
+                )
         if not spec_data.get("acceptance") and not spec_data.get("eval_refs"):
             blocking_items.append("mission has no acceptance or eval refs")
             checks.append({"name": "verification_inputs", "status": "fail", "detail": "at least one acceptance or eval ref is required"})

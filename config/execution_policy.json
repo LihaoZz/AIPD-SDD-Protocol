@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "sandbox": {
+    "mode": "workspace-write",
+    "allow_bypass": false
+  },
+  "forbidden_command_patterns": [
+    "--dangerously-bypass-approvals-and-sandbox",
+    "git reset --hard",
+    "git clean -fd",
+    "rm -rf /",
+    "rm -rf ~"
+  ],
+  "forbidden_path_prefixes": [
+    "~/.ssh",
+    "~/.gitconfig",
+    "~/.bashrc",
+    "~/.zshrc",
+    "/etc",
+    "/root"
+  ],
+  "protected_runtime_prefixes": [
+    "runtime/state/",
+    "runtime/memory/",
+    "runtime/gate_outcomes/",
+    "runtime/locks/"
+  ],
+  "ignored_runtime_prefixes": [
+    "runtime/attempts/{mb_id}/{attempt_id}/"
+  ]
+}

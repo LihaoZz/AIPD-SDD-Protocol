@@ -57,6 +57,11 @@ def main() -> int:
     elif mb_id == "fb1-mb7":
         src_file.write_text("PASS_SEVEN\n", encoding="utf-8")
         message = "Applied PASS_SEVEN to src/app.py after human approval."
+    elif mb_id == "fb1-mb8":
+        runtime_state = project_root / "runtime" / "state" / "fb1-mb8.state.json"
+        runtime_state.parent.mkdir(parents=True, exist_ok=True)
+        runtime_state.write_text('{"tampered": true}\n', encoding="utf-8")
+        message = "Touched a protected runtime state file."
     else:
         message = "Unknown MB."
 

@@ -1,0 +1,281 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-04T02:16:50-07:00",
+  "source_digests": {
+    "HARNESS.md": "fe8f3696a699f9169fc5af67d658718be308300b1613f393cc0bd2b159187630",
+    "README.md": "aece8fd1149a52bc0c033cf72360adf7c7747fd21bc21414b3d9eeb9bed81641",
+    "docs/00_lifecycle.md": "faf2939d99bb8d11fb0b82a971b6edab7ef145c1872f7da0a933ce5ea3ea67c1",
+    "docs/01_principles.md": "4f732b4725cece38f0e8fc28f1dce85231bebb13f8073293e1b3fe688d4fc24f",
+    "docs/02_artifacts.md": "b94b76625af9fcbf038860c9972eee23f391b0ad92deea39152d73589c0d1b16",
+    "docs/03_mission_blocks.md": "8181f2d3f0ad824b5fb20095d9ad5f50088c94236629f27a142cc751a952093d",
+    "docs/04_review_recovery.md": "30c088beb2fd5277ccb3c38e8b25cf762f1a5cc939436b4a79502407507d3cef",
+    "docs/05_operating_playbook.md": "adcdaae281dcb3f90e7f219a0ca397bfe0601135ea239a85e9c11cc1e3cd3f58",
+    "docs/06_session_bootstrap.md": "8b792a3d287af80bb241e1d732428094611339f8ab15e27f8b2f41cfb8df68e6",
+    "docs/07_repository_layout.md": "e2a06d9f58812cdebf83679a21322f839bdaec045ae551c8b17abc031161b2b0",
+    "docs/08_symphony_integration_plan.md": "dec60640ceee8f09c09b13e4118f7211c3eb3fb5d34ab177b7211128f7442b0b",
+    "docs/09_symphony_mb_adapter_contract.md": "d112f400a23f71454022b1ac2210d4d305d5ff958962caa380cad29f0946a302",
+    "docs/99_legacy_master_protocol_v4.md": "6e56a1486fc349726abba3e3e6547841f449542ef811365e12944f092c1f0a25",
+    "docs/provider_onboarding.md": "feca61d939c0c92770848035f1bb389921db8e005497576bbabc9ebd506ed9c7",
+    "templates/API_CONTRACT.template.md": "ed9621a3506eb9d5266dbad95acc8a791eb3412affef507cba53534fc5a68fab",
+    "templates/CONSTITUTION.template.md": "690ff12d9d6fd10a46521aa99a6a863f269dedfa522bce2a250f57a4f5425b31",
+    "templates/DATA_MODEL.template.md": "560222346c4176eee1df7ebb06b4c62a00b34ff9637ad41ea1eb9a5d7080039b",
+    "templates/DECISIONS.template.md": "d1c7dffc23b6db7bd9642e175d3947d76ade54bf055204b458bf6acf8bf33e9e",
+    "templates/EXPERIENCE_PROMPT.template.md": "25ddd22db3505efa507492eee8a5d6b84d7b9ca2a56f6b03944a5eb6008d7ed8",
+    "templates/FUNCTION_BLOCK.template.md": "7bd871f9b8cf40147668011dd37028c5bbec367918613fb744be5894033967d7",
+    "templates/MISSION_BLOCK.template.md": "0937ccb57a5db50327372d0d4db56e97ccbb868388c3b4b00fee43a9812f2438",
+    "templates/PREFLIGHT_RESULT.template.md": "ba06d4c6990d1f6670ee62be19e162bf8bb9ca84dc166db4f9e4964fc17c89ca",
+    "templates/QUALITY_MEMORY.template.md": "fcc5165dd4f2946548397167377181998f4bb98373eb8c29a9a5486b4d2f8b1a",
+    "templates/QUALITY_RULEBOOK.template.md": "7ccd4e002850f2ccbabdaaee906d1c7daed416a25b08a6d3526e11b585333d07",
+    "templates/RESEARCH_NOTE.template.md": "10d126c2c510154ece2f7755897df84d5b988cf0c8247fcc5fd07b8d6b68bdd0",
+    "templates/SCOPE.template.md": "484cd0c06cd14dd12e9aca3c7738b7e340a9fb8e5a7894a5d28b7e7478af3474",
+    "templates/SESSION_STATE.template.md": "a9f9dfd375e164455f1d474322c25d64ff69759e782a09d179a9c2f403cc9b57",
+    "translations/zh/README.md": "8a38d33c51b55b8618590d8ddfc6c27164c0e732288e13d54bdf947ecc86dcff",
+    "translations/zh/docs/00_lifecycle.md": "eb83615154d7584eed2293cd78a8733526cdc7a2bb9a944362882ce931b94db7",
+    "translations/zh/docs/01_principles.md": "0531ae91c11122926654ef46da0c9ae54b52220237adcb9b5f93abb53e482147",
+    "translations/zh/docs/02_artifacts.md": "83b044e9de7be7730939d23badbd4b5e1e355ce09107532b13f489c8e36f4d13",
+    "translations/zh/docs/03_mission_blocks.md": "f16832dcbad646a9c4ea078ed8f5fb05a394d3bb0444a5a5b25cb93f2a33bce5",
+    "translations/zh/docs/04_review_recovery.md": "5d0626f74ad2d55114603fb996b6c07b67689296c50706e3c0d68d2d7490184b",
+    "translations/zh/docs/05_operating_playbook.md": "86c6b92f502717891aaed3118e10a3b3a7a5aecfd894ae4382d43e8d94849e31",
+    "translations/zh/docs/06_session_bootstrap.md": "0abf7dc52037cc01727509f74325be252c5ca35b802ce29640f5f293f840cf2b",
+    "translations/zh/docs/07_repository_layout.md": "9328f9d46c459ad96064009102b441f20f045c484c31f5bc9e0bd0387b01ed01",
+    "translations/zh/docs/08_symphony_integration_plan.md": "0cf86426503615e746b310143a68a69bfe1a3b7ecde2f6d744d3122068783ac7",
+    "translations/zh/docs/09_symphony_mb_adapter_contract.md": "4b971aef8d59b2ae51fc581e559cd3f4151f03f403586860b8aadbc8b10ddce1",
+    "translations/zh/docs/99_legacy_master_protocol_v4.md": "c544d0539b0575b3521e8d829aa74af2ac3445105d0b0499ae67b44b1394ba54",
+    "translations/zh/docs/provider_onboarding.md": "30d2ee8a178a082b7d906944a00c24a391e6c2427c0cb97758ec8dab79f16f49",
+    "translations/zh/templates/API_CONTRACT.template.md": "d8abb95be4103ddf0fbe6d57b52531ee3aee2998e2aef740d25517e903e53c4b",
+    "translations/zh/templates/CONSTITUTION.template.md": "97ab131baadaee46335a643972652204b82564d86d95cb004e33518efad28d84",
+    "translations/zh/templates/DATA_MODEL.template.md": "30d75b76de8bc18b81f1d38a41dda104229c53a8fae983a5b410e18e44019dd6",
+    "translations/zh/templates/DECISIONS.template.md": "5e411717f4dbd52485e6ca582ac96d441b87a067a303e0d075ae0fb5243ca5ec",
+    "translations/zh/templates/EXPERIENCE_PROMPT.template.md": "93eb311fbc63cdc72301b7af65411c29e392cf6865e7b87234b6994a5de85664",
+    "translations/zh/templates/FUNCTION_BLOCK.template.md": "161a1e1079f6c8e3c79914bb6ef12e166e31d9f7678d034b4e2193c432a4fa51",
+    "translations/zh/templates/MISSION_BLOCK.template.md": "812dc60d5d7eeac5037429e056e5e40cfa2df670dc00d6bbf3d48418ebd684c1",
+    "translations/zh/templates/PREFLIGHT_RESULT.template.md": "893cbb6876b77108cf354e8319b4e49784ef069e33ed612b6ca803f702aba84e",
+    "translations/zh/templates/QUALITY_MEMORY.template.md": "6172c68d1d94f8e2d875b001de2141726aa12caff6039c07ceebfb314bad2be3",
+    "translations/zh/templates/QUALITY_RULEBOOK.template.md": "f82dcc5c231dccf95cf3e2b0627b48d8827012263d84d99f08e797d829c6e64e",
+    "translations/zh/templates/RESEARCH_NOTE.template.md": "485b38e11e95bc1a453dfdfdc25a60ef7234a41fb5f5ec8644c919731f2d755e",
+    "translations/zh/templates/SCOPE.template.md": "39f4f0fa41af3d6b625dac2b556a62f8477ef8867f3f0fb71ab42969835efdac",
+    "translations/zh/templates/SESSION_STATE.template.md": "1196b03883b742fdb4f164c90e973a10caad21e68c09ca874343bbec9fd170bf"
+  },
+  "artifacts": {
+    "generated/protocol_compact.json": {
+      "kind": "compact",
+      "sha256": "999f001b8999e59c8e72f7a49aa7e5c67885f8fd7f624e556852736c0ea53cbb",
+      "source_paths": [
+        "README.md",
+        "docs/00_lifecycle.md",
+        "docs/01_principles.md",
+        "docs/05_operating_playbook.md",
+        "docs/06_session_bootstrap.md",
+        "HARNESS.md"
+      ]
+    },
+    "README.zh.md": {
+      "kind": "translation",
+      "sha256": "596f23b1e4f1f8b983c7eefabc45e84109c4cc2f7359d6e4bcc0eeff69f4d39b",
+      "source_paths": [
+        "README.md",
+        "translations/zh/README.md"
+      ]
+    },
+    "docs/zh/00_lifecycle.md": {
+      "kind": "translation",
+      "sha256": "9f97af5e843cf9e0e250753857169159f9c7ac997c9fdb2c651e2cc40cc9a288",
+      "source_paths": [
+        "docs/00_lifecycle.md",
+        "translations/zh/docs/00_lifecycle.md"
+      ]
+    },
+    "docs/zh/01_principles.md": {
+      "kind": "translation",
+      "sha256": "93f45b67cc6d8d519bcecd440a54f931254411f564e8ca5ca790f4e8a444f202",
+      "source_paths": [
+        "docs/01_principles.md",
+        "translations/zh/docs/01_principles.md"
+      ]
+    },
+    "docs/zh/02_artifacts.md": {
+      "kind": "translation",
+      "sha256": "3982fd308b20910c1125de54c6fa4fc4ee186f7169b491949ea5af43c6101ab3",
+      "source_paths": [
+        "docs/02_artifacts.md",
+        "translations/zh/docs/02_artifacts.md"
+      ]
+    },
+    "docs/zh/03_mission_blocks.md": {
+      "kind": "translation",
+      "sha256": "79ba3bb7ca088e369a7b00058f3f3a42dd0b1b87ae8e344a7acd46669692e730",
+      "source_paths": [
+        "docs/03_mission_blocks.md",
+        "translations/zh/docs/03_mission_blocks.md"
+      ]
+    },
+    "docs/zh/04_review_recovery.md": {
+      "kind": "translation",
+      "sha256": "11f825206a5a41d61463b602075efa7c935f4a1b75109df8ac844d5884f6b3a9",
+      "source_paths": [
+        "docs/04_review_recovery.md",
+        "translations/zh/docs/04_review_recovery.md"
+      ]
+    },
+    "docs/zh/05_operating_playbook.md": {
+      "kind": "translation",
+      "sha256": "8ce7a5db162a736acc830465a24678261e0c3ed7dff3e521bcfb740163f5ac4e",
+      "source_paths": [
+        "docs/05_operating_playbook.md",
+        "translations/zh/docs/05_operating_playbook.md"
+      ]
+    },
+    "docs/zh/06_session_bootstrap.md": {
+      "kind": "translation",
+      "sha256": "26d54c3e3e5fc6546da4ee01b0ad63f8820e733bc6ba1d606ef612668f95aeeb",
+      "source_paths": [
+        "docs/06_session_bootstrap.md",
+        "translations/zh/docs/06_session_bootstrap.md"
+      ]
+    },
+    "docs/zh/07_repository_layout.md": {
+      "kind": "translation",
+      "sha256": "e2e07eb6834f93297e7fb1d2ea3a5a3467fc1367cac3cca1a12bf0427b62b228",
+      "source_paths": [
+        "docs/07_repository_layout.md",
+        "translations/zh/docs/07_repository_layout.md"
+      ]
+    },
+    "docs/zh/08_symphony_integration_plan.md": {
+      "kind": "translation",
+      "sha256": "9183de7f96713557c0af15ec1285943e32d43f9e6173934002a924c563f38075",
+      "source_paths": [
+        "docs/08_symphony_integration_plan.md",
+        "translations/zh/docs/08_symphony_integration_plan.md"
+      ]
+    },
+    "docs/zh/09_symphony_mb_adapter_contract.md": {
+      "kind": "translation",
+      "sha256": "5f8859176c7738c28b7985e3b3e398d27c256f2df348e294a561999d2b4db91b",
+      "source_paths": [
+        "docs/09_symphony_mb_adapter_contract.md",
+        "translations/zh/docs/09_symphony_mb_adapter_contract.md"
+      ]
+    },
+    "docs/zh/99_legacy_master_protocol_v4.md": {
+      "kind": "translation",
+      "sha256": "165e4f9917734640e21992606e955d887988dfb18b1709f0eff77512b0de4cee",
+      "source_paths": [
+        "docs/99_legacy_master_protocol_v4.md",
+        "translations/zh/docs/99_legacy_master_protocol_v4.md"
+      ]
+    },
+    "docs/zh/provider_onboarding.md": {
+      "kind": "translation",
+      "sha256": "93d2886c4467ccb3097c696267af219183356817b16f804a22275f96eb813d51",
+      "source_paths": [
+        "docs/provider_onboarding.md",
+        "translations/zh/docs/provider_onboarding.md"
+      ]
+    },
+    "templates/zh/API_CONTRACT.template.md": {
+      "kind": "translation",
+      "sha256": "d32c6ee4f6736489a6ff73df8312c54e42eaae674e02659f1d4c1049c66abd07",
+      "source_paths": [
+        "templates/API_CONTRACT.template.md",
+        "translations/zh/templates/API_CONTRACT.template.md"
+      ]
+    },
+    "templates/zh/CONSTITUTION.template.md": {
+      "kind": "translation",
+      "sha256": "03dd531a4a1df455676dc466759dc5ff9a5f7c9b8654647a8a8a2e7de37b3166",
+      "source_paths": [
+        "templates/CONSTITUTION.template.md",
+        "translations/zh/templates/CONSTITUTION.template.md"
+      ]
+    },
+    "templates/zh/DATA_MODEL.template.md": {
+      "kind": "translation",
+      "sha256": "e1e6161cec1c1b5a96e862fea3e1adb329a93d2859e5881bbddba7d9675e1d4a",
+      "source_paths": [
+        "templates/DATA_MODEL.template.md",
+        "translations/zh/templates/DATA_MODEL.template.md"
+      ]
+    },
+    "templates/zh/DECISIONS.template.md": {
+      "kind": "translation",
+      "sha256": "16d231a843c1d75ef7224542b7bf8b5039dcc1c764f8db1392be0c60586a2779",
+      "source_paths": [
+        "templates/DECISIONS.template.md",
+        "translations/zh/templates/DECISIONS.template.md"
+      ]
+    },
+    "templates/zh/EXPERIENCE_PROMPT.template.md": {
+      "kind": "translation",
+      "sha256": "1bcdff45fe92e6963c920ddfefcd7a0b34068e58e4fdb755e5955162bffbf1e0",
+      "source_paths": [
+        "templates/EXPERIENCE_PROMPT.template.md",
+        "translations/zh/templates/EXPERIENCE_PROMPT.template.md"
+      ]
+    },
+    "templates/zh/FUNCTION_BLOCK.template.md": {
+      "kind": "translation",
+      "sha256": "6aed952020cfc09528bab566e1cf37c5ae63243ff844b22e109c3aa1b659c2e1",
+      "source_paths": [
+        "templates/FUNCTION_BLOCK.template.md",
+        "translations/zh/templates/FUNCTION_BLOCK.template.md"
+      ]
+    },
+    "templates/zh/MISSION_BLOCK.template.md": {
+      "kind": "translation",
+      "sha256": "047faf0b1a31cfe95aef0fbdc81f3110334769d505f2803d2067fdaaa1d996fd",
+      "source_paths": [
+        "templates/MISSION_BLOCK.template.md",
+        "translations/zh/templates/MISSION_BLOCK.template.md"
+      ]
+    },
+    "templates/zh/PREFLIGHT_RESULT.template.md": {
+      "kind": "translation",
+      "sha256": "dd7cea00b2d40330c8d084b15ed61da7134a3bfa65bc4538fc44d4f4397eb8d4",
+      "source_paths": [
+        "templates/PREFLIGHT_RESULT.template.md",
+        "translations/zh/templates/PREFLIGHT_RESULT.template.md"
+      ]
+    },
+    "templates/zh/QUALITY_MEMORY.template.md": {
+      "kind": "translation",
+      "sha256": "c304f8e1ba7682d8fb370a27f1eba40b171aa240edab02319e957c180dd0bbf5",
+      "source_paths": [
+        "templates/QUALITY_MEMORY.template.md",
+        "translations/zh/templates/QUALITY_MEMORY.template.md"
+      ]
+    },
+    "templates/zh/QUALITY_RULEBOOK.template.md": {
+      "kind": "translation",
+      "sha256": "49e2b2547ab6d8d14b107d78f4af65b93f6d9d4b9a4c1810c47a650fc4795174",
+      "source_paths": [
+        "templates/QUALITY_RULEBOOK.template.md",
+        "translations/zh/templates/QUALITY_RULEBOOK.template.md"
+      ]
+    },
+    "templates/zh/RESEARCH_NOTE.template.md": {
+      "kind": "translation",
+      "sha256": "044329a6102e4feb0386842ff242f86cd18ac4fab4b0e3643b5f4be4b6ad119a",
+      "source_paths": [
+        "templates/RESEARCH_NOTE.template.md",
+        "translations/zh/templates/RESEARCH_NOTE.template.md"
+      ]
+    },
+    "templates/zh/SCOPE.template.md": {
+      "kind": "translation",
+      "sha256": "682026453f2eeace2a052be688b8611a22bb7e32018c9a97ddc47ce82ca84427",
+      "source_paths": [
+        "templates/SCOPE.template.md",
+        "translations/zh/templates/SCOPE.template.md"
+      ]
+    },
+    "templates/zh/SESSION_STATE.template.md": {
+      "kind": "translation",
+      "sha256": "9c4cfcb918b0fa7bb8de912e7f34d9864a08ed3d677dd49b4a0ef8ceead3db8a",
+      "source_paths": [
+        "templates/SESSION_STATE.template.md",
+        "translations/zh/templates/SESSION_STATE.template.md"
+      ]
+    }
+  }
+}

@@ -93,6 +93,25 @@ Hooks are lifecycle guards.
 
 They do not replace `mb_runner`, `verifier.py`, or the runtime state machine.
 
+## Execution Policy Rule
+
+The harness must load one protocol-level execution policy before any runnable `MB` starts.
+
+- policy file: `config/execution_policy.json`
+- schema file: `schemas/execution-policy.schema.json`
+
+This policy is fail-closed.
+
+If the policy file is missing, unreadable, or schema-invalid, `mb_runner` and `aipd_gate` must block execution before Codex starts.
+
+This wave only hardens:
+
+- explicit sandbox startup mode
+- sandbox-bypass prohibition
+- repo-local protected runtime paths
+
+It does not yet provide per-command interception for every model-generated shell or network action.
+
 ## Eval Asset Rule
 
 An eval asset is a reusable machine-checkable verification definition.
@@ -208,6 +227,18 @@ In that case:
 - `scope_guard.py` remains the file-boundary authority
 - the Builder should not use `git status` or `git diff` just to report changed files
 - changed-file reporting should describe direct edits instead of depending on repository diff commands
+
+`scope_guard.py` is a repo-local file-boundary auditor, not a full-system sandbox.
+
+This wave protects `runtime/state/`, `runtime/memory/`, `runtime/gate_outcomes/`, and `runtime/locks/` as runtime-owned paths.
+
+It may ignore artifacts produced inside the current attempt directory under `runtime/attempts/<mb_id>/<attempt_id>/`, but it must still report and block writes to other protected runtime paths.
+
+It does not claim to detect:
+
+- repo-external file writes
+- network side effects
+- every model-internal command choice during execution
 
 ## Timestamp Rule
 

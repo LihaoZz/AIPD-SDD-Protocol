@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/protocol-compact.schema.json",
+  "title": "AIPD Protocol Compact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_from",
+    "authority",
+    "startup",
+    "scenes",
+    "protocol_rules",
+    "harness_rules",
+    "builder_runtime_contract"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "generated_from": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "english_markdown_authoritative",
+        "machine_summary_kind",
+        "chinese_reference_kind"
+      ],
+      "properties": {
+        "english_markdown_authoritative": {
+          "type": "boolean",
+          "const": true
+        },
+        "machine_summary_kind": {
+          "type": "string",
+          "const": "derived_compact"
+        },
+        "chinese_reference_kind": {
+          "type": "string",
+          "const": "generated_reference_only"
+        }
+      }
+    },
+    "startup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "machine_default_entrypoint",
+        "human_authority_refs",
+        "global_bootstrap_files",
+        "automatic_reading_path_steps",
+        "minimum_startup_checklist"
+      ],
+      "properties": {
+        "machine_default_entrypoint": {
+          "type": "string",
+          "const": "generated/protocol_compact.json"
+        },
+        "human_authority_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "global_bootstrap_files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "automatic_reading_path_steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "minimum_startup_checklist": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scenes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "greenfield",
+        "expansion",
+        "continue",
+        "review",
+        "recovery"
+      ],
+      "properties": {
+        "greenfield": {
+          "$ref": "#/$defs/scene"
+        },
+        "expansion": {
+          "$ref": "#/$defs/scene"
+        },
+        "continue": {
+          "$ref": "#/$defs/scene"
+        },
+        "review": {
+          "$ref": "#/$defs/scene"
+        },
+        "recovery": {
+          "$ref": "#/$defs/scene"
+        }
+      }
+    },
+    "protocol_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "three_layers",
+        "core_principles",
+        "plain_writing_rule",
+        "preflight_rule",
+        "research_rule",
+        "role_handoff_rule",
+        "issue_routing_rule",
+        "bootstrap_rule",
+        "failure_modes"
+      ],
+      "properties": {
+        "three_layers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "core_principles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "plain_writing_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preflight_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "research_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role_handoff_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issue_routing_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bootstrap_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "failure_modes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "harness_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "purpose",
+        "execution_policy_rule",
+        "dual_preflight_rule",
+        "retry_feedback_rule",
+        "structural_route_rule",
+        "runtime_state_rule",
+        "non_git_workspace_rule",
+        "memory_bridge_rule",
+        "verification_report_vs_digest"
+      ],
+      "properties": {
+        "purpose": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "execution_policy_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dual_preflight_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retry_feedback_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "structural_route_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_state_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "non_git_workspace_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "memory_bridge_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verification_report_vs_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "builder_runtime_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "core_rules",
+        "required_inputs",
+        "forbidden_behaviors"
+      ],
+      "properties": {
+        "core_rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "forbidden_behaviors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_reads",
+        "first_role",
+        "first_action",
+        "do_not"
+      ],
+      "properties": {
+        "required_reads": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "first_role": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "first_action": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "do_not": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "also_read_when_needed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "also_read_when_relevant": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

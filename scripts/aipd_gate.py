@@ -11,8 +11,10 @@ from typing import Any
 from harness_common import (
     attempt_dir,
     initialize_runtime_memory,
+    load_execution_policy,
     mission_machine_spec_path,
     read_json,
+    resolve_execution_policy,
     resolve_path,
     runtime_dir,
     runtime_state_path,
@@ -33,7 +35,7 @@ from mb_runner import (
     set_failure_issue_type,
 )
 from preflight import mb_preflight
-from scope_guard import changed_files, evaluate_scope, snapshot_workspace
+from scope_guard import changed_files, diff_snapshots, evaluate_scope, snapshot_workspace
 from state_writer import append_failure_log, append_project_memory, load_state, sync_session_state, write_state
 from verifier import run_verification
 
@@ -130,6 +132,7 @@ def run_attempt_start(
         attempt_gate = read_json(start_result["attempt_dir"] / "attempt_start_gate_outcome.json")
         gate_archive = runtime_dir(project_root) / "gate_outcomes" / mb_id / "attempt_start.json"
         write_json(gate_archive, attempt_gate)
+        write_json(start_result["attempt_dir"] / "before_snapshot.json", snapshot_workspace(project_root))
     payload = {
         "status": start_result["status"],
         "attempt_id": start_result.get("attempt_id"),
@@ -163,7 +166,12 @@ def run_attempt_finish(project_root: Path, workspace_root: Path, mb_id: str, att
     (current_attempt_dir / "last_message.txt").write_text((summary or "") + "\n", encoding="utf-8")
     run_post_tool_hook(spec, current_attempt_dir, execution, changes)
 
-    scope_result = evaluate_scope(changes, spec["allowed_touch"], spec["forbidden_touch"])
+    scope_result = evaluate_scope(
+        diff_snapshots(before, after),
+        spec["allowed_touch"],
+        spec["forbidden_touch"],
+        resolve_execution_policy(load_execution_policy(), mb_id, attempt_id),
+    )
     scope_path = current_attempt_dir / "scope_guard.json"
     write_json(scope_path, scope_result)
 

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/execution-policy.schema.json",
+  "title": "AIPD Execution Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sandbox",
+    "forbidden_command_patterns",
+    "forbidden_path_prefixes",
+    "protected_runtime_prefixes",
+    "ignored_runtime_prefixes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "sandbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "allow_bypass"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "const": "workspace-write"
+        },
+        "allow_bypass": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    },
+    "forbidden_command_patterns": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "forbidden_path_prefixes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "protected_runtime_prefixes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "ignored_runtime_prefixes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

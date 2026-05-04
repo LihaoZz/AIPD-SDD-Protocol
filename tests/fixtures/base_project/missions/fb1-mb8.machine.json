@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "mb_id": "fb1-mb8",
+  "parent_fb_id": "fb1",
+  "goal": "Trigger protected runtime scope handling",
+  "context_files": [
+    "src/app.py"
+  ],
+  "input_artifacts": [],
+  "allowed_touch": [
+    "src/app.py"
+  ],
+  "forbidden_touch": [],
+  "acceptance": [
+    {
+      "check_id": "scope_ok",
+      "type": "no_out_of_scope_changes"
+    }
+  ],
+  "eval_refs": [],
+  "retry_policy": {
+    "max_retries": 2,
+    "on_retry_limit": "route_to_recovery"
+  },
+  "memory_policy": {
+    "inject_failure_patterns": true,
+    "inject_validated_patterns": true,
+    "max_memory_items": 3
+  },
+  "autonomy_level": "L2_auto_with_review",
+  "prompt_feedback": {
+    "include_last_verification_digest": true,
+    "include_last_failure_reason": true,
+    "include_retry_count": true
+  },
+  "issue_owner_map": {
+    "spec_gap": "spec_architect",
+    "implementation_bug": "builder",
+    "quality_evidence_gap": "builder",
+    "state_drift": "recovery_coordinator",
+    "environment_issue": "recovery_coordinator",
+    "review_context_gap": "current_scene_lead"
+  }
+}
